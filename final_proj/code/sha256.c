@@ -16,7 +16,6 @@
 #include <stdlib.h>
 #include <memory.h>
 #include "sha256.h"
-#include "state-space.h"
 
 /****************************** MACROS ******************************/
 #define ROTLEFT(a,b) (((a) << (b)) | ((a) >> (32-(b))))
@@ -112,13 +111,6 @@ void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len)
 	}
 }
 
-void sha256_update_state(SHA256_CTX *ctx, variable_state* var_states){
-    size_t num_vars = sizeof(var_states)/sizeof(var_states[0]);;
-    for(size_t i = 0; i < num_vars; i++){
-        sha256_update(ctx, (BYTE*)var_states[i].var_addr, var_states[i].num_bytes);
-    }
-}
-
 // void sha256_update_state(SHA256_CTX *ctx, variable_state* var_states){
 //     size_t num_vars = sizeof(var_states)/sizeof(var_states[0]);
 //     size_t total_bytes = 0;
@@ -181,3 +173,5 @@ void sha256_final(SHA256_CTX *ctx, BYTE hash[])
 		hash[i + 28] = (ctx->state[7] >> (24 - i * 8)) & 0x000000ff;
 	}
 }
+
+void notmain() {}
