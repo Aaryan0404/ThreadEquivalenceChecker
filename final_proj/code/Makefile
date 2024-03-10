@@ -1,6 +1,6 @@
 
 PROGS += state-space.c
-
+COMMON_SRC += sha256.c
 # uncomment if you want it to automatically run.
 RUN=1
 
