@@ -237,6 +237,8 @@ void get_sequential_state_outcomes(void (*functions[])(void**), variable_state* 
     int perm_idx = 0;
     generate_permutations(sequence, 0, num_funcs - 1, np, num_funcs, permutations, &perm_idx);
 
+    uint32_t hash[np]; 
+
     // go through all perms
     for (int p_idx = 0; p_idx < np; p_idx++) {
         // retrieve sequence of function idxs
@@ -248,7 +250,7 @@ void get_sequential_state_outcomes(void (*functions[])(void**), variable_state* 
         
         for (int f_idx = 0; f_idx < num_funcs; f_idx++) {
             functions[sequence[f_idx]](variables);
-            printk("func: %d, x: %d, y[0]: %d, y[1]: %d, z: %d\n", sequence[f_idx], *(int *)variables[0], *(int *)variables[1], *((int *)variables[1] + 1), *(int *)variables[2]);
+            // printk("func: %d, x: %d, y[0]: %d, y[1]: %d, z: %d\n", sequence[f_idx], *(int *)variables[0], *(int *)variables[1], *((int *)variables[1] + 1), *(int *)variables[2]);
         }
         SHA256_CTX ctx;
         BYTE buf[SHA256_BLOCK_SIZE];
@@ -256,9 +258,15 @@ void get_sequential_state_outcomes(void (*functions[])(void**), variable_state* 
         sha256_update_state(&ctx, initial_mem_state);
         sha256_final(&ctx, buf);
         uint32_t trunc_hash = *((uint32_t*)buf);
-        printk("hash: %x\n", trunc_hash);
-        printk("\n");
+        hash[p_idx] = trunc_hash;
+        // printk("hash: %x\n", trunc_hash);
+        // printk("\n");
 
+    }
+
+    // print out the hash values
+    for (int i = 0; i < np; i++) {
+        printk("hash: %x\n", hash[i]);
     }
 }
 
