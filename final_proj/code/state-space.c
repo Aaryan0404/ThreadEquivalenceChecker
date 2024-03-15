@@ -8,6 +8,10 @@ void swap(int *a, int *b) {
     *b = temp;
 }
 
+int a = 1;
+int b = 2;
+int c = 3;
+
 void sha256_update_state(SHA256_CTX *ctx, variable_state* var_states){
     size_t num_vars = 3;
     for(size_t i = 0; i < num_vars; i++){
@@ -43,14 +47,14 @@ void duplicate_memory_state(variable_state* memory_state, size_t num_states, var
     }
 }
 
-void get_sequential_state_outcomes(void (*functions[])(void**), variable_state* memory_state, size_t num_funcs, size_t num_states) {
+void get_sequential_state_outcomes(function_exec* executables, size_t num_executables, size_t num_states, memory_segments* initial_mem_state) {
     // all permutations of the functions
     int np = 1; 
-    for (int i = 1; i <= num_funcs; i++) {
+    for (int i = 1; i <= num_executables; i++) {
         np *= i; 
     }
 
-    int *sequence = kmalloc(num_funcs * sizeof(int));
+    int *sequence = kmalloc(num_executables * sizeof(int));
     for (int i = 0; i < num_funcs; i++) {
         sequence[i] = i;
     }
@@ -58,7 +62,7 @@ void get_sequential_state_outcomes(void (*functions[])(void**), variable_state* 
     // create a 2d array
     // dim 0 = idx of permutation (from 0 to num_permutations - 1)
     // dim 1 = actual permutation of function idxs
-    int permutations[np][num_funcs];
+    int permutations[np][num_executables];
     int perm_idx = 0;
     generate_permutations(sequence, 0, num_funcs - 1, np, num_funcs, permutations, &perm_idx);
 
@@ -69,9 +73,12 @@ void get_sequential_state_outcomes(void (*functions[])(void**), variable_state* 
         // retrieve sequence of function idxs
         int *sequence = permutations[p_idx];
 
-        variable_state initial_mem_state[num_states]; 
-        void* variables[num_states];
-        duplicate_memory_state(memory_state, num_states, initial_mem_state, variables);
+       // set value of ptr_list to ptr_og_list
+       for (int i = 0; i < initial_mem_state->num_ptrs; i++) {
+           void *ptr = initial_mem_state->ptr_list[i];
+           void *ptr_og = initial_mem_state->ptr_og_list[i];
+           memcpy(ptr, ptr_og, initial_mem_state->size_list[i]);
+       }
         
         for (int f_idx = 0; f_idx < num_funcs; f_idx++) {
             functions[sequence[f_idx]](variables);
@@ -95,8 +102,61 @@ void get_sequential_state_outcomes(void (*functions[])(void**), variable_state* 
     }
 }
 
+static eq_th_t* launch_thread(void (*f)(void**), void **args, int verbose_p, size_t num_states) {
+    void* variables[num_states];
+    duplicate_memory_state(memory_state, num_states, initial_mem_state, variables);
+
+    let th = equiv_fork(functions[i], variables, 0); 
+    th->verbose_p = verbose_p;
+
+    equiv_run();
+}
+
+void get_function_interleavings(void (*functions[])(void**), variable_state* memory_state, size_t num_funcs, size_t num_states) {
+    let th1 = launch_thread(functions[0], memory_state, num_states, 1, num_states);
+    let th2 = launch_thread(functions[1], memory_state, num_states, 1, num_states);
+}
+
+// random memory
+
 
 // USER CODE
+void funcA(void **args) {
+    int *x = (int *)args[0];
+    int *y = (int *)args[1];
+    int *z = (int *)args[2];
+
+    // read set = x, y
+    // write set = z
+
+    // read from x
+    int x_val = *x;
+
+    // read from y
+    int y_val = *y;
+
+    // set z to x + y
+    *z = x_val + y_val;
+}
+
+void funcB(void **args) {
+    int *x = (int *)args[0];
+    int *y = (int *)args[1];
+    int *z = (int *)args[2];
+
+    // read set = y
+    // write set = x, z
+
+    // read from y
+    int y_val = *y;
+
+    // set x to y + 1
+    *x = y_val + 1;
+
+    // set z to y - 1
+    *z = y_val - 1;
+}
+
 void func0(void **args) {
     int *x = (int *)args[0];
     int *y = (int *)args[1];
