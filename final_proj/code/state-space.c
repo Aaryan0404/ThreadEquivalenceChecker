@@ -129,12 +129,21 @@ void equiv_puts(char *msg) {
 void msgA(void **args) {
     void *msg1 = (char *)args[0];
     void *msg2 = (char *)args[1];
+    // concat A to msg1
+    char * to_print = "A0";
+    // strcat(to_print, msg1);
+    // printk("to_print: %s\n", to_print);
+    printk("msg1: %s\n", msg1);
+    // strcat(to_print, msg1);
+    // strcpy(msg1, "overwritten\n");
+    // printk("to_print after: %s\n", to_print);
+
     // print  msg1 and msg2
     // printk("A msg1: %s\n", msg1);
     // printk("A msg2: %s\n", msg2);
 
-    equiv_puts(msg1);
-    equiv_puts(msg2);
+    // equiv_puts(to_print);
+    // equiv_puts(msg2);
     // equiv_puts("A1\n");
     // equiv_puts("A3\n");
     // equiv_puts("A5\n");
@@ -145,12 +154,21 @@ void msgA(void **args) {
 void msgB(void **args) {
     void *msg1 = (char *)args[0];
     void *msg2 = (char *)args[1];
+    char * to_print = "B0";
+    // strcat(to_print, msg1);
+    // printk("to_print: %s\n", to_print);
+    printk("msg1: %s\n", msg1);
+    // strcat(to_print, msg1);
+    // overwrite msg1 to say "overwritten"
+    // strcpy(msg1, "overwritten\n");
+    // printk("to_print after: %s\n", to_print);
+    // prinkt("msg1: %s\n", msg1);
     // print start address of msg1 and msg2
     // printk("B msg1: %s\n", msg1);
     // printk("B msg2: %s\n", msg2);
 
-    equiv_puts(msg1);
-    equiv_puts(msg2);
+    // equiv_puts(to_print);
+    // equiv_puts(msg2);
     // equiv_puts("B1\n");
     // equiv_puts("B3\n");
     // equiv_puts("B5\n");
@@ -206,12 +224,15 @@ void get_function_interleavings(void (*functions[])(void**), memory_segments ini
             
             }
         }
-        // functions[i](args);
-        threads[i] = equiv_fork(functions[i], args, 0);
+        functions[i](args);
+        // threads[i] = equiv_fork(functions[i], args, 0);
     }
-    equiv_run();
-    printk("IGNORE: %d\n", threads[0]->tid);
-
+    // equiv_run();
+    // printk("IGNORE: %d\n", threads[0]->tid);
+    printk("str1: %s\n", (char *)initial_mem_state.ptr_list[0]);
+    printk("str2: %s\n", (char *)initial_mem_state.ptr_list[1]);
+    printk("str3: %s\n", (char *)initial_mem_state.ptr_list[2]);
+    printk("str4: %s\n", (char *)initial_mem_state.ptr_list[3]);
     // run 2
     // equiv_refresh(th1);
     // equiv_refresh(th2);
