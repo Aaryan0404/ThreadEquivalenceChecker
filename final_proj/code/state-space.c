@@ -13,10 +13,6 @@ void swap(int *a, int *b) {
     *b = temp;
 }
 
-int a = 1;
-int b = 2;
-int c = 3;
-
 void sha256_update_state(SHA256_CTX *ctx, memory_segments var_states){
     for(size_t i = 0; i < var_states.num_ptrs; i++){
         sha256_update(ctx, (BYTE*)(var_states.ptr_list)[i], var_states.size_list[i]);
@@ -119,39 +115,6 @@ void duplicate_memory_state(memory_segments memory_state) {
     
 }
 
-void sys_equiv_putc(uint8_t ch);
-
-void equiv_puts(char *msg) {
-    for(; *msg; msg++)
-        sys_equiv_putc(*msg);
-}
-
-void msgA(void **args) {
-    void *msg1 = (char *)args[0];
-    void *msg2 = (char *)args[1];
-    // equiv_puts(msg1);
-    // equiv_puts(msg2);
-    equiv_puts("A1\n");
-    equiv_puts("A3\n");
-    equiv_puts("A5\n");
-    equiv_puts("A7\n");
-    equiv_puts("A9\n");
-}
-
-void msgB(void **args) {
-    void *msg1 = (char *)args[0];
-    void *msg2 = (char *)args[1];
-    
-    // equiv_puts(msg1);
-    // equiv_puts(msg2);
-
-    equiv_puts("B1\n");
-    equiv_puts("B3\n");
-    equiv_puts("B5\n");
-    equiv_puts("B7\n");
-    equiv_puts("B9\n");
-}
-
 size_t get_num_func_args(bool arg_map[][NUM_PTRS], size_t func_idx, size_t total_args) {
     size_t num_args = 0;
     for(int j = 0; j < total_args; j++) {
@@ -195,83 +158,78 @@ void get_function_interleavings(void (*functions[])(void**), memory_segments ini
 
 
 // USER CODE
-void funcA(void **args) {
-    int *x = (int *)args[0];
-    int *y = (int *)args[1];
-    int *z = (int *)args[2];
+int* global_var;
 
-    // read set = x, y
-    // write set = z
-
-    // read from x
-    int x_val = *x;
-
-    // read from y
-    int y_val = *y;
-
-    // set z to x + y
-    *z = x_val + y_val;
+void funcMA() {
+    // multiply by 4 and add 1
+    int a = *global_var;
+    a += 1; 
+    *global_var = a;   
 }
 
-void funcB(void **args) {
-    int *x = (int *)args[0];
-    int *y = (int *)args[1];
-    int *z = (int *)args[2];
-
-    // read set = y
-    // write set = x, z
-
-    // read from y
-    int y_val = *y;
-
-    // set x to y + 1
-    *x = y_val + 1;
-
-    // set z to y - 1
-    *z = y_val - 1;
-}
-
-void func0(void **args) {
-    int *x = (int *)args[0];
-    int *y = (int *)args[1];
-    int *z = (int *)args[2];
-
-    // set y[0] to 1
-    *y = 1;
-
-    // set y[1] to 2
-    *(y + 1) = 2;
+void funcMS() {
+    // subtracts 1 from global var a
+    int a = *global_var;
+    a *= 2;
+    *global_var = a;
 }
 
 void notmain() {
 
-    printk("Hello, world!\n"); 
-    char *msg_1  = "A1\n";
-    char *msg_2  = "B2\n";
-    char *msg_3  = "A3\n";
-    char *msg_4  = "B4\n";
-    void *ptr_list[NUM_PTRS] = {msg_1, msg_2, msg_3, msg_4};
+    // arbitrary number of global vars, 
+    // wrapped in initial_mem_state struct
+    global_var = kmalloc(sizeof(int));
+    *global_var = 5;
 
-    size_t size_list[NUM_PTRS] = {strlen(msg_1), strlen(msg_2), strlen(msg_3), strlen(msg_4)};
+    // print statement that shows value of 
+    // initial memory state
+    printk("global var: %d\n", *global_var);
 
-    memory_segments initial_mem_state = {NUM_PTRS, ptr_list, ptr_list, size_list};
-    void (*functions[NUM_FUNCS])(void**) = {msgA, msgB};
-    // initialize a 2d boolean array signifying which elements in ptr_list are arguments for functions msgA and msgB
-    // initialize the array as all false
-    bool arg_map[NUM_FUNCS][NUM_PTRS];
-    for (int i = 0; i < NUM_FUNCS; i++) {
-        for (int j = 0; j < NUM_PTRS; j++) {
-            arg_map[i][j] = false;
-        }
-    }
+    equiv_init();
+    eq_th_t* threads[2]; 
 
-    // set the elements in ptr_list that are arguments for msgA to true
-    arg_map[0][0] = true;
-    arg_map[0][2] = true;
+    // args is null
+    void *args[0];
 
-    // set the elements in ptr_list that are arguments for msgB to true
-    arg_map[1][1] = true;
-    arg_map[1][3] = true;
+    threads[0] = equiv_fork(funcMA, args, 0);
+    threads[1] = equiv_fork(funcMS, args, 0);
 
-    get_function_interleavings(functions, initial_mem_state, NUM_FUNCS, arg_map);
+    printk("thread 0: %d\n", threads[0]); 
+
+    equiv_run();
+
+    printk("global var: %d\n", *global_var);
 }
+
+    // memory_segments initial_mem_state = {1, (void **)&global_var, (void **)&global_var, (size_t *)&global_var};
+
+
+    // printk("Hello, world!\n"); 
+    // char *msg_1  = "A1\n";
+    // char *msg_2  = "B2\n";
+    // char *msg_3  = "A3\n";
+    // char *msg_4  = "B4\n";
+    // void *ptr_list[NUM_PTRS] = {msg_1, msg_2, msg_3, msg_4};
+
+    // size_t size_list[NUM_PTRS] = {strlen(msg_1), strlen(msg_2), strlen(msg_3), strlen(msg_4)};
+
+    // memory_segments initial_mem_state = {NUM_PTRS, ptr_list, ptr_list, size_list};
+    // void (*functions[NUM_FUNCS])(void**) = {msgA, msgB};
+    // // initialize a 2d boolean array signifying which elements in ptr_list are arguments for functions msgA and msgB
+    // // initialize the array as all false
+    // bool arg_map[NUM_FUNCS][NUM_PTRS];
+    // for (int i = 0; i < NUM_FUNCS; i++) {
+    //     for (int j = 0; j < NUM_PTRS; j++) {
+    //         arg_map[i][j] = false;
+    //     }
+    // }
+
+    // // set the elements in ptr_list that are arguments for msgA to true
+    // arg_map[0][0] = true;
+    // arg_map[0][2] = true;
+
+    // // set the elements in ptr_list that are arguments for msgB to true
+    // arg_map[1][1] = true;
+    // arg_map[1][3] = true;
+
+    // get_function_interleavings(functions, initial_mem_state, NUM_FUNCS, arg_map);
