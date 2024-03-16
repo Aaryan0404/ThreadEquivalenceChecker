@@ -8,9 +8,9 @@ typedef struct {
     // number of memory segments
     size_t num_ptrs;
     // list of memory ptrs to segments
-    void *ptr_list;
+    void **ptr_list;
     // list of original memory ptrs to segments
-    void *ptr_og_list; 
+    void **ptr_og_list; 
     // list of sizes of memory segments
     int *size_list;
 } memory_segments;
