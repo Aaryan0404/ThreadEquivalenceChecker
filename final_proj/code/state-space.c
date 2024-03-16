@@ -117,38 +117,33 @@ void equiv_puts(char *msg) {
 
 void msgA(void *msg) {
     equiv_puts("A1\n");
-    // equiv_puts("A3\n");
-    // equiv_puts("A5\n");
-    // equiv_puts("A7\n");
-    // equiv_puts("A9\n");
+    equiv_puts("A3\n");
+    equiv_puts("A5\n");
+    equiv_puts("A7\n");
+    equiv_puts("A9\n");
 }
 
 void msgB(void *msg) {
     equiv_puts("B1\n");
-    // equiv_puts("B3\n");
-    // equiv_puts("B5\n");
-    // equiv_puts("B7\n");
-    // equiv_puts("B9\n");
+    equiv_puts("B3\n");
+    equiv_puts("B5\n");
+    equiv_puts("B7\n");
+    equiv_puts("B9\n");
 }
 
 
 void get_function_interleavings(void (*functions[])(void**), memory_segments initial_mem_state, size_t num_funcs) {
+    equiv_init();
     // duplicate memory state here and we'll use those for the variables
-    printk("1\n");
     duplicate_memory_state(initial_mem_state);
-    printk("2\n");
     let th1 = equiv_fork(msgA, "A", 0);
-    equiv_run();
-    printk("3\n");
     let th2 = equiv_fork(msgB, "B", 0);
     equiv_run();
-    printk("4\n");
+
+    // run 2
     equiv_refresh(th1);
-    printk("5\n");
     equiv_refresh(th2);
-    printk("6\n");
     equiv_run();
-    printk("7\n");
     // let th1 = launch_thread(functions[0], memory_state, num_states, 1, num_states);
     // let th2 = launch_thread(functions[1], memory_state, num_states, 1, num_states);
 }
@@ -256,10 +251,15 @@ void notmain() {
 
     printk("Hello, world!\n"); 
     //initial_mem_state = {}
-    int a = 1;
-    void * ptr_list[1] = {&a};
-    int size_list[1] = {sizeof(int)};
-    memory_segments initial_mem_state = {1, ptr_list, ptr_list, size_list};
+    char *msg_1  = "1\n";
+    char *msg_2  = "2\n";
+    char *msg_3  = "3\n";
+    char *msg_4  = "4\n";
+    void *ptr_list[4] = {&msg_1, &msg_2, &msg_3, &msg_4};
+    size_t size_list[4] = {strlen(msg_1), strlen(msg_2), strlen(msg_3), strlen(msg_4)};
+    size_t num_ptrs = sizeof(ptr_list) / sizeof(void *);
+    
+    memory_segments initial_mem_state = {num_ptrs, ptr_list, ptr_list, size_list};
     get_function_interleavings(NULL, initial_mem_state, 0);
     // // array of function ptrs
     // void (*functions[6])(void**) = {func0, func1, func2, func3, func4, func5};

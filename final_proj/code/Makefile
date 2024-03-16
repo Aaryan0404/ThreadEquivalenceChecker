@@ -1,6 +1,6 @@
 
-#PROGS += state-space.c
-PROGS += 10-equiv-check.c
+PROGS += state-space.c
+# PROGS += 10-equiv-check.c
 COMMON_SRC += sha256.c
 COMMON_SRC += equiv-threads.c
 COMMON_SRC += full-except-asm.S
