@@ -129,51 +129,27 @@ void equiv_puts(char *msg) {
 void msgA(void **args) {
     void *msg1 = (char *)args[0];
     void *msg2 = (char *)args[1];
-    // concat A to msg1
-    char * to_print = "A0";
-    // strcat(to_print, msg1);
-    // printk("to_print: %s\n", to_print);
-    printk("msg1: %s\n", msg1);
-    // strcat(to_print, msg1);
-    // strcpy(msg1, "overwritten\n");
-    // printk("to_print after: %s\n", to_print);
-
-    // print  msg1 and msg2
-    // printk("A msg1: %s\n", msg1);
-    // printk("A msg2: %s\n", msg2);
-
-    // equiv_puts(to_print);
+    // equiv_puts(msg1);
     // equiv_puts(msg2);
-    // equiv_puts("A1\n");
-    // equiv_puts("A3\n");
-    // equiv_puts("A5\n");
-    // equiv_puts("A7\n");
-    // equiv_puts("A9\n");
+    equiv_puts("A1\n");
+    equiv_puts("A3\n");
+    equiv_puts("A5\n");
+    equiv_puts("A7\n");
+    equiv_puts("A9\n");
 }
 
 void msgB(void **args) {
     void *msg1 = (char *)args[0];
     void *msg2 = (char *)args[1];
-    char * to_print = "B0";
-    // strcat(to_print, msg1);
-    // printk("to_print: %s\n", to_print);
-    printk("msg1: %s\n", msg1);
-    // strcat(to_print, msg1);
-    // overwrite msg1 to say "overwritten"
-    // strcpy(msg1, "overwritten\n");
-    // printk("to_print after: %s\n", to_print);
-    // prinkt("msg1: %s\n", msg1);
-    // print start address of msg1 and msg2
-    // printk("B msg1: %s\n", msg1);
-    // printk("B msg2: %s\n", msg2);
-
-    // equiv_puts(to_print);
+    
+    // equiv_puts(msg1);
     // equiv_puts(msg2);
-    // equiv_puts("B1\n");
-    // equiv_puts("B3\n");
-    // equiv_puts("B5\n");
-    // equiv_puts("B7\n");
-    // equiv_puts("B9\n");
+
+    equiv_puts("B1\n");
+    equiv_puts("B3\n");
+    equiv_puts("B5\n");
+    equiv_puts("B7\n");
+    equiv_puts("B9\n");
 }
 
 size_t get_num_func_args(bool arg_map[][NUM_PTRS], size_t func_idx, size_t total_args) {
@@ -190,24 +166,6 @@ void get_function_interleavings(void (*functions[])(void**), memory_segments ini
     equiv_init();
     // duplicate memory state here and we'll use those for the variables
     duplicate_memory_state(initial_mem_state);
-    // print out the new ptr_list
-    // for (int i = 0; i < initial_mem_state.num_ptrs; i++) {
-    //     printk("ptr_list: %x\n", initial_mem_state.ptr_list[i]);
-    // }
-    // printk("str1: %s\n", (char *)initial_mem_state.ptr_list[0]);
-    // printk("str2: %s\n", (char *)initial_mem_state.ptr_list[1]);
-    // char* strmsgA = "A\n";
-    // char* strmsgB = "B\n";
-    // let th1 = equiv_fork(functions[0], (void**)&strmsgA, 0);
-    // let th2 = equiv_fork(functions[1], (void**)&strmsgB, 0);
-    // create array of threads, one for each function
-
-    // print arg map
-    // for (int i = 0; i < num_funcs; i++) {
-    //     for (int j = 0; j < initial_mem_state.num_ptrs; j++) {
-    //         printk("arg_map[%d][%d]: %d\n", i, j, arg_map[i][j]);
-    //     }
-    // }
 
     eq_th_t *threads[num_funcs];
     for (size_t i = 0; i < num_funcs; i++) {
@@ -224,21 +182,15 @@ void get_function_interleavings(void (*functions[])(void**), memory_segments ini
             
             }
         }
-        functions[i](args);
-        // threads[i] = equiv_fork(functions[i], args, 0);
+        // functions[i](args);
+        threads[i] = equiv_fork(functions[i], args, 0);
     }
-    // equiv_run();
-    // printk("IGNORE: %d\n", threads[0]->tid);
-    printk("str1: %s\n", (char *)initial_mem_state.ptr_list[0]);
-    printk("str2: %s\n", (char *)initial_mem_state.ptr_list[1]);
-    printk("str3: %s\n", (char *)initial_mem_state.ptr_list[2]);
-    printk("str4: %s\n", (char *)initial_mem_state.ptr_list[3]);
-    // run 2
-    // equiv_refresh(th1);
-    // equiv_refresh(th2);
-    // equiv_run();
-    // let th1 = launch_thread(functions[0], memory_state, num_states, 1, num_states);
-    // let th2 = launch_thread(functions[1], memory_state, num_states, 1, num_states);
+    equiv_run();
+    printk("IGNORE: %d\n", threads[0]->tid);
+    // printk("str1: %s\n", (char *)initial_mem_state.ptr_list[0]);
+    // printk("str2: %s\n", (char *)initial_mem_state.ptr_list[1]);
+    // printk("str3: %s\n", (char *)initial_mem_state.ptr_list[2]);
+    // printk("str4: %s\n", (char *)initial_mem_state.ptr_list[3]);
 }
 
 
@@ -291,55 +243,6 @@ void func0(void **args) {
     *(y + 1) = 2;
 }
 
-void func1(void **args) {
-    int *x = (int *)args[0];
-    int *y = (int *)args[1];
-    int *z = (int *)args[2];
-
-    // if y[0] is 1, set x to 2
-    if (*y == 1) {
-        *x = 2;
-    }
-}
-
-void func2(void **args) {
-    int *x = (int *)args[0];
-    int *y = (int *)args[1];
-    int *z = (int *)args[2];
-
-    // if y[1] is 2, set x to 3
-    if (*(y + 1) == 2) {
-        *x = 3;
-    }
-}
-
-void func3(void **args) {
-    int *x = (int *)args[0];
-    int *y = (int *)args[1];
-    int *z = (int *)args[2];
-
-    // set z to 1
-    *z = 1;
-}
-
-void func4(void **args) {
-    int *x = (int *)args[0];
-    int *y = (int *)args[1];
-    int *z = (int *)args[2];
-
-    // increment z
-    *z += 1;
-}
-
-void func5(void **args) {
-    int *x = (int *)args[0];
-    int *y = (int *)args[1];
-    int *z = (int *)args[2];
-
-    // multiply z by 2
-    *z *= 2;
-}
-
 void notmain() {
 
     printk("Hello, world!\n"); 
@@ -371,18 +274,4 @@ void notmain() {
     arg_map[1][3] = true;
 
     get_function_interleavings(functions, initial_mem_state, NUM_FUNCS, arg_map);
-
-    // // array of function ptrs
-    // void (*functions[6])(void**) = {func0, func1, func2, func3, func4, func5};
-    // // initial state and then store in struct
-    // int x = 1;
-    // int y[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    // int z = 2; 
-
-    // variable_state states[3] = {{&x, sizeof(int)}, 
-    //                             {&y[0], 10 * sizeof(int)}, 
-    //                             {&z, sizeof(int)}};
-
-    // // run the function
-    // get_sequential_state_outcomes(functions, states, 6, 3);
 }
