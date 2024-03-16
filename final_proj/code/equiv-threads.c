@@ -148,7 +148,7 @@ static inline regs_t equiv_regs_init(eq_th_t *p) {
 
     // XXX: which code had the partial save?  the ss rwset?
     regs_t regs = (regs_t) {
-        .regs[0] = p->arg,
+        .regs[0] = p->args,
         .regs[REGS_PC] = p->fn,      // where we want to jump to
         .regs[REGS_SP] = p->stack_end,      // the stack pointer to use.
         .regs[REGS_LR] = (uint32_t)sys_equiv_exit, // where to jump if return.
@@ -158,7 +158,7 @@ static inline regs_t equiv_regs_init(eq_th_t *p) {
 }
 
 // fork <fn(arg)> as a pre-emptive thread.
-eq_th_t *equiv_fork(void (*fn)(void*), void *arg, uint32_t expected_hash) {
+eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash) {
     eq_th_t *th = kmalloc_aligned(stack_size, 8);
 
     assert((uint32_t)th%8==0);
@@ -168,7 +168,7 @@ eq_th_t *equiv_fork(void (*fn)(void*), void *arg, uint32_t expected_hash) {
     th->tid = ntids++;
 
     th->fn = (uint32_t)fn;
-    th->arg = (uint32_t)arg;
+    th->args = (uint32_t)args;
 
     // allocate the 8byte aligned stack
     th->stack_start = (uint32_t)th;
@@ -181,8 +181,8 @@ eq_th_t *equiv_fork(void (*fn)(void*), void *arg, uint32_t expected_hash) {
     eq_push(&equiv_runq, th);
     return th;
 }
-eq_th_t *equiv_fork_nostack(void (*fn)(void*), void *arg, uint32_t expected_hash) {
-    let th = equiv_fork(fn,arg,expected_hash);
+eq_th_t *equiv_fork_nostack(void (*fn)(void**), void **args, uint32_t expected_hash) {
+    let th = equiv_fork(fn,args,expected_hash);
     th->regs.regs[REGS_SP] = 0;
     th->stack_start = th->stack_end = 0;
     return th;

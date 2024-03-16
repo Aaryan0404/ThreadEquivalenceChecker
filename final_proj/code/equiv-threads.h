@@ -20,7 +20,7 @@ typedef struct eq_th {
     uint32_t tid;           // thread id.
 
     uint32_t fn;
-    uint32_t arg;
+    uint32_t args;
     uint32_t stack_start;
     uint32_t stack_end;
     uint32_t refork_cnt;
@@ -36,7 +36,7 @@ typedef void (*equiv_fn_t)(void*);
 // assumes it has total control of system calls etc.
 void equiv_init(void);
 
-eq_th_t *equiv_fork(void (*fn)(void*), void *arg, uint32_t expected_hash);
+eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash);
 
 // run all the threads until there are no more.
 void equiv_run(void);
@@ -49,7 +49,7 @@ void sys_equiv_exit(uint32_t ret);
 void equiv_refresh(eq_th_t *th);
 
 // don't set stack pointer.
-eq_th_t *equiv_fork_nostack(void (*fn)(void*), void *arg, uint32_t expected_hash);
+eq_th_t *equiv_fork_nostack(void (*fn)(void**), void **args, uint32_t expected_hash);
 
 void equiv_verbose_on(void);
 void equiv_verbose_off(void);
