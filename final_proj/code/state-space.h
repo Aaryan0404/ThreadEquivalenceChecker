@@ -7,17 +7,6 @@ typedef struct {
 } function_exec; 
 
 typedef struct {
-    // number of memory segments
-    size_t num_ptrs;
-    // list of memory ptrs to segments
-    void **ptr_list;
-    // list of original memory ptrs to segments
-    void **ptr_og_list; 
-    // list of sizes of memory segments
-    size_t *size_list;
-} memory_segments;
-
-typedef struct {
     int tid; 
     int num_instrs; 
 } schedule_info; 
