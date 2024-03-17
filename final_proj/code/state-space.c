@@ -60,22 +60,31 @@ void find_good_hashes(function_exec* executables, size_t num_funcs, int **itl, s
 
 void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes) {
     equiv_init();
-    for (size_t i = 3; i <= 4; i++) {
+    uint32_t max_instrs = 0;
+    for (size_t i = 1; i <= 16384; i++) {
+        // halt early once we reach a sequential ordering
+        if(max_instrs != 0 && i > max_instrs){
+            break;
+        }
         reset_memory_state(initial_mem_state);
         eq_th_t *threads[num_funcs];
         for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
             threads[f_idx] = equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
         }
-        printk("threads[0]: %d\n", threads[0]->tid);
+
         // thread tid will run for i instructions, and then context switch.
-        uint32_t tid = 2; 
+        uint32_t tid = 2;
+        tid = 2 + (i - 1) * (num_funcs);
         set_ctx_switch_tid(tid);
         set_ctx_switch_instr_num(i);
-        
-
-        // set ctx_switch_instr_num to i
 
         equiv_run();
+        // calculate max instructions used for each thread
+        for (size_t j = 0; j < num_funcs; j++) {
+            if(threads[j]->inst_cnt > max_instrs){
+                max_instrs = threads[j]->inst_cnt;
+            }
+        }
         uint64_t hash = capture_memory_state(initial_mem_state);
         bool valid = false;
         for (size_t j = 0; j < num_perms; j++) {
@@ -85,12 +94,9 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
             }
         }
         if (valid) {
-            printk("valid\n");
-            printk("global var: %d\n", *global_var);
+            printk("valid, global var: %d\n", *global_var); 
         } else {
-            printk("invalid\n");
-            printk("global var: %d\n", *global_var);
-            printk("permutation: %d\n", i);
+            printk("invalid, global var: %d\n", *global_var);
         }
     }
 }
