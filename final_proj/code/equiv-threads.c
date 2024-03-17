@@ -114,8 +114,8 @@ static int equiv_syscall_handler(regs_t *r) {
         uart_put8(r->regs[1]);
         break;
     case EQUIV_EXIT: 
-        trace("thread=%d exited with code=%d, hash=%x\n", 
-            th->tid, r->regs[1], th->reg_hash);
+        // trace("thread=%d exited with code=%d, hash=%x\n", 
+        //     th->tid, r->regs[1], th->reg_hash);
 
         // check hash.
         if(!th->expected_hash)
@@ -219,6 +219,7 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
 
     let regs = s->regs->regs;
     uint32_t pc = regs[15];
+    output("tid=%d: pc=%x, cnt=%d\n", th->tid, pc, th->inst_cnt);
 
     th->reg_hash = fast_hash_inc32(&th->regs, sizeof th->regs, th->reg_hash);
 
@@ -231,7 +232,7 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
     if (th->tid == ctx_switch_tid && th->inst_cnt == ctx_switch_instr_num) {
         equiv_schedule();
     }
-    equiv_schedule();
+    //equiv_schedule();
 }
 
 // run all the threads.

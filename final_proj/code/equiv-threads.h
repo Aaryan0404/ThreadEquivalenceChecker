@@ -32,6 +32,9 @@ typedef struct eq_th {
 
 typedef void (*equiv_fn_t)(void*);
 
+void set_ctx_switch_instr_num(uint32_t n);
+void set_ctx_switch_tid(uint32_t tid);
+
 // a very heavy handed initialization just for today's lab.
 // assumes it has total control of system calls etc.
 void equiv_init(void);
