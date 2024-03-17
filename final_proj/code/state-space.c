@@ -13,12 +13,6 @@ void swap(int *a, int *b) {
     *b = temp;
 }
 
-void sha256_update_state(SHA256_CTX *ctx, memory_segments var_states){
-    for(size_t i = 0; i < var_states.num_ptrs; i++){
-        sha256_update(ctx, (BYTE*)(var_states.ptr_list)[i], var_states.size_list[i]);
-    }
-}
-
 void generate_permutations(int *arr, int start, int end, int np, int num_funcs, int permutations[][num_funcs], int *perm_idx) {
     if (start == end) {
         for (int i = 0; i < num_funcs; i++) {
@@ -100,19 +94,85 @@ void generate_permutations(int *arr, int start, int end, int np, int num_funcs, 
 //     equiv_run();
 // }
 
-// reset ptr_list in memory state with a copy of the values in ptr_og_list
-void duplicate_memory_state(memory_segments memory_state) {
+void sha256_update_state(SHA256_CTX *ctx, memory_segments* memory_state){
+    for(size_t i = 0; i < memory_state->num_ptrs; i++){
+        sha256_update(ctx, (BYTE*)(memory_state->ptr_list)[i], memory_state->size_list[i]);
+    }
+}
+
+// initialize ptr_og_list in memory state with a copy of the values in ptr_list
+void initialize_memory_state(memory_segments* memory_state) {
     void** new_ptr_list = kmalloc(memory_state.num_ptrs * sizeof(void *));
     for (int i = 0; i < memory_state.num_ptrs; i++) {
         void *var_addr = kmalloc(memory_state.size_list[i]);
-        memcpy(var_addr, memory_state.ptr_og_list[i], memory_state.size_list[i]);
+        memcpy(var_addr, memory_state.ptr_list[i], memory_state.size_list[i]);
         new_ptr_list[i] = var_addr;
-        // printk("new_ptr_list: %x\n", new_ptr_list[i]);
-        // printk("old str: %s\n", (char *)memory_state.ptr_og_list[i]);
-        // printk("new str: %s\n", (char *)new_ptr_list[i]);
     }
-    memory_state.ptr_list = new_ptr_list;
-    
+    memory_state.ptr_og_list = new_ptr_list;
+}
+
+// reset ptr_list in memory state with a copy of the values in ptr_og_list
+void reset_memory_state(memory_segments* memory_state) {
+    for (int i = 0; i < memory_state.num_ptrs; i++) {
+        void *ptr = memory_state.ptr_list[i];
+        void *ptr_og = memory_state.ptr_og_list[i];
+        memcpy(ptr, ptr_og, memory_state.size_list[i]);
+    }
+}
+
+// get the hash of the bytes in the memory state
+uint32_t capture_memory_state(memory_segments* memory_state){
+    SHA256_CTX ctx;
+    sha256_init(&ctx);
+    sha256_update_state(&ctx, memory_state);
+    sha256_final(&ctx, buf);
+    uint32_t trunc_hash = *((uint32_t*)buf);
+    return trunc_hash;
+}
+
+void find_good_hashes(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes) {
+    for (size_t i = 0; i < num_perms; i++) {
+        reset_memory_state(&initial_mem_state);
+        for (size_t j = 0; j < num_funcs; j++) {
+            // run func for this permutation with the corresponding variables
+            executables[itl[i][j]].func_addr(executables[itl[i][j]].var_list);
+        }
+        uint64_t hash = capture_memory_state(&initial_mem_state);
+        valid_hashes[i] = hash;
+    }
+}
+
+void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes) {
+    for (size_t i = 1; i <= 500; i++) {
+        reset_memory_state(&initial_mem_state);
+        eq_th_t *threads[num_funcs];
+        for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
+            threads[f_idx] = equiv_fork(executables[itl[0][f_idx]].func_addr, executables[itl[0][f_idx]].var_list, 0);
+        }
+        // thread tid will run for i instructions, and then context switch.
+        uint32_t tid = 0; 
+        set_ctx_switch_tid(tid);
+        set_ctx_switch_instr_num(i);
+        
+
+        // set ctx_switch_instr_num to i
+
+        equiv_run();
+        uint64_t hash = capture_memory_state(&initial_mem_state);
+        bool valid = false;
+        for (size_t j = 0; j < num_perms; j++) {
+            if (hash == valid_hashes[j]) {
+                valid = true;
+                break;
+            }
+        }
+        if (valid) {
+            printk("valid\n");
+        } else {
+            printk("invalid\n");
+            printk("permutation: %d\n", i);
+        }
+    }
 }
 
 size_t get_num_func_args(bool arg_map[][NUM_PTRS], size_t func_idx, size_t total_args) {
@@ -157,6 +217,48 @@ void get_function_interleavings(void (*functions[])(void**), memory_segments ini
 }
 
 
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void permute(int **itl, int *arr, int start, int end, int *count) {
+    if (start == end) {
+        for (int i = 0; i <= end; i++) {
+            itl[*count][i] = arr[i];
+        }
+        (*count)++;
+    } else {
+        for (int i = start; i <= end; i++) {
+            swap(&arr[start], &arr[i]);
+            permute(itl, arr, start + 1, end, count);
+            swap(&arr[start], &arr[i]); // backtrack
+        }
+    }
+}
+
+int factorial(int n) {
+    if (n == 0) return 1;
+    int fact = 1;
+    for (int i = 1; i <= n; i++) {
+        fact *= i;
+    }
+    return fact;
+}
+
+void find_permutations(int **itl, int num_funcs) {
+    int *arr = kmalloc(num_funcs * sizeof(int)); 
+    for (int i = 0; i < num_funcs; i++) {
+        arr[i] = i;
+    }
+
+    int count = 0;
+    permute(itl, arr, 0, num_funcs - 1, &count);
+
+    kfree(arr);
+}
+
 // USER CODE
 int* global_var;
 
@@ -178,13 +280,83 @@ void notmain() {
 
     // arbitrary number of global vars, 
     // wrapped in initial_mem_state struct
+        // will contain actual memory (to be modified)
+        // will contain copy of original memory
     global_var = kmalloc(sizeof(int));
     *global_var = 5;
+
+    size_t sizes[1] = {sizeof(int)};
+
+    memory_segments initial_mem_state = {1, (void **)&global_var, NULL, sizes}; 
+    initialize_memory_state(&initial_mem_state);
 
     // print statement that shows value of 
     // initial memory state
     printk("global var: %d\n", *global_var);
 
+
+    // dependeing on num functions, generate
+    // a 2d array of function interleavings (sequential outcomes)
+    // itl[0] = {0, 1}
+    // itl[1] = {1, 0}
+    size_t num_funcs = 2;
+    size_t num_perms = factorial(num_funcs);
+    int **itl = kmalloc(num_perms * sizeof(int *));
+    for (int i = 0; i < num_perms; i++) {
+        itl[i] = kmalloc(num_funcs * sizeof(int));
+    }
+    find_permutations(itl, num_funcs);
+
+    // create an array (set) of memory hashes
+    uint64_t valid_hashes[num_perms];
+
+    function_exec *executables = kmalloc(num_funcs * sizeof(function_exec));
+
+    executables[0].func_addr = (void *)funcMA;
+    executables[0].num_vars = 1;
+    executables[0].var_list = (void *)&global_var;
+
+    executables[1].func_addr = (void *)funcMS;
+    executables[1].num_vars = 1;
+    executables[1].var_list = (void *)&global_var;
+
+    find_good_hashes(executables, num_funcs, itl, num_perms, &initial_mem_state, &valid_hashes);
+    // on a single thread, run each interleaving
+    // for loop of 2d array dim 0 itrs, with 
+    // each itr having dim 1 func executions
+    // for each itr,
+        // capture memory state
+        // hash it 
+        // store in array (set) of valid hashes
+        // reset memory state
+
+    // generate schedule for thread 0, thread 1
+    // for i from 0 to 500
+        // schedule a
+        // {t0, t0, t0, ..., t0} i times
+        // {t1, ...} to completion
+
+        // schedule b
+        // {t1, t1, t1, ..., t1} i times
+        // {t0, ...} to completion
+    // total of 1000 schedules
+
+    run_interleavings(executables, num_funcs, itl, num_perms, &initial_mem_state, &valid_hashes);
+    // do equiv init
+    // launch 2 threads
+        // thread 0: funcMA
+        // thread 1: funcMS
+        // run schedule a
+    // equiv run
+    // capture global state
+    // hash it
+    // compare to set of valid hashes - if match, print "valid" else, print "invalid"
+    // reset memory state
+    // equiv_refresh
+        // thread 0: funcMS
+        // thread 1: funcMA
+        // run schedule b
+    // equiv run
     equiv_init();
     eq_th_t* threads[2]; 
 

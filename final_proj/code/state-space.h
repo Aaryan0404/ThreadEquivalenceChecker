@@ -12,6 +12,11 @@ typedef struct {
     // list of original memory ptrs to segments
     void **ptr_og_list; 
     // list of sizes of memory segments
-    int *size_list;
+    size_t *size_list;
 } memory_segments;
+
+typedef struct {
+    int tid; 
+    int num_instrs; 
+} schedule_info; 
 

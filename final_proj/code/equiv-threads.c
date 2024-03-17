@@ -19,6 +19,9 @@ static rq_t equiv_runq;
 static eq_th_t * volatile cur_thread;
 static regs_t start_regs;
 
+static uint32_t ctx_switch_instr_num;
+static uint32_t ctx_switch_tid;
+
 static int verbose_p = 1;
 void equiv_verbose_on(void) {
     verbose_p = 1;
@@ -72,6 +75,14 @@ enum {
     EQUIV_EXIT = 0,
     EQUIV_PUTC = 1
 };
+
+void set_ctx_switch_instr_num(uint32_t n) {
+    ctx_switch_instr_num = n;
+}
+
+void set_ctx_switch_tid(uint32_t tid) {
+    ctx_switch_tid = tid;
+}
 
 // in staff-start.S
 void sys_equiv_exit(uint32_t ret);
@@ -197,6 +208,7 @@ void equiv_refresh(eq_th_t *th) {
     eq_push(&equiv_runq, th);
 }
 
+
 // just print out the pc and instruction count.
 static void equiv_hash_handler(void *data, step_fault_t *s) {
     gcc_mb();
@@ -216,6 +228,9 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
             th->tid, th->inst_cnt, pc, th->reg_hash);
 
     gcc_mb();
+    if (th->tid == ctx_switch_tid && th->inst_cnt == ctx_switch_instr_num) {
+        equiv_schedule();
+    }
     equiv_schedule();
 }
 
