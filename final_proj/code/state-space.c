@@ -10,7 +10,7 @@
 
 /*
 POTENTIAL TODOS:
-1) Support for multiple variables
+1) Support for multiple variables - DONE
 2) Multiple functions (and equivalent threads)
 3) Multiple context switches
 4) Memory - Read/write set consistency with VM
@@ -87,8 +87,18 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
             // uint32_t tid = 2 + (i - 1) * (num_funcs); // B
             // uint32_t tid = (k + 1) + (i - 1) * (num_funcs); // C
 
-            set_ctx_switch_tid(tid); 
-            set_ctx_switch_instr_num(i);
+            // int and int
+            // when curr_thread tid gets to instruction i, switch to the other thread in queue
+
+            // int[] and int[]
+            // when tid[i] gets to instruction[i], switch to other thread in queue
+            // [A]
+            // [1]
+
+            // [A, B]
+            // [1, 1]
+            set_ctx_switch_tid(tid);     // make this array
+            set_ctx_switch_instr_num(i); // make this array
 
             equiv_run();
 
