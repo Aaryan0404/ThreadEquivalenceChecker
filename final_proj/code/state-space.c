@@ -5,7 +5,7 @@
 #include "permutations.h"
 #include "memory.h"
 
-#define NUM_VARS 1
+#define NUM_VARS 2
 #define NUM_FUNCS 2
 
 /*
@@ -25,19 +25,28 @@ APPLICATIONS:
 
 // USER CODE
 int* global_var;
+int* global_var2;
 
 // multiply by 4 and add 1
 void funcMA(void **arg) {
     int a = *global_var;
     a += 1; 
     *global_var = a;   
+
+    int b = *global_var2;
+    b *= 2;
+    *global_var2 = b;
 }
 
 // subtracts 1 from global var a
 void funcMS(void **arg) {
-    int a = *global_var;
+    int a = *global_var2; 
     a *= 2;
-    *global_var = a;
+    *global_var2 = a;
+
+    int b = *global_var;
+    b += 1;
+    *global_var = b;
 }
 
 // finds valid hashes for each permutation
@@ -100,9 +109,13 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
             }
 
             if (valid) {
-                printk("valid, global var: %d\n", *global_var); 
+                for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
+                    printk("valid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
+                }
             } else {
-                printk("invalid, global var: %d\n", *global_var);
+                for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
+                    printk("invalid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
+                }
             }
         }
     }
@@ -117,11 +130,15 @@ void notmain() {
 
     // allocate and initialize global vars
     global_var = kmalloc(sizeof(int));
+    global_var2 = kmalloc(sizeof(int));
     *global_var = 5;
+    *global_var2 = 10;
+    
+    // convert global vars to an array of pointers
+    int *global_vars[NUM_VARS] = {global_var, global_var2};
+    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int)};
 
-    size_t sizes[NUM_VARS] = {sizeof(int)};
-
-    memory_segments initial_mem_state = {NUM_VARS, (void **)&global_var, NULL, sizes}; 
+    memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes}; 
     initialize_memory_state(&initial_mem_state);
 
     // print statement that shows value of 
