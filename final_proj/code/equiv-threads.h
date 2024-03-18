@@ -32,8 +32,7 @@ typedef struct eq_th {
 
 typedef void (*equiv_fn_t)(void*);
 
-void set_ctx_switch_instr_num(uint32_t n);
-void set_ctx_switch_tid(uint32_t tid);
+void set_ctx_switches(uint32_t* tid, uint32_t* n, uint32_t num_context_switches);
 
 // a very heavy handed initialization just for today's lab.
 // assumes it has total control of system calls etc.
@@ -41,10 +40,10 @@ void equiv_init(void);
 
 eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash);
 
+eq_th_t * volatile retrieve_tid_from_queue(uint32_t tid);
+
 // run all the threads until there are no more.
 void equiv_run(void);
-
-void equiv_init(void);
 
 // called by client code.
 void sys_equiv_exit(uint32_t ret);

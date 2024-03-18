@@ -19,8 +19,14 @@ static rq_t equiv_runq;
 static eq_th_t * volatile cur_thread;
 static regs_t start_regs;
 
-static uint32_t ctx_switch_instr_num;
-static uint32_t ctx_switch_tid;
+// an array of the instruction numbers for each thread at which we'll context switch
+static uint32_t* ctx_switch_instr_num;
+// an array of the thread ids at which we will context switch
+static uint32_t* ctx_switch_tid;
+// the current context switch we're on (aka the current idx of arrays)
+static size_t ctx_switch_idx = 0;
+// the total number of context switches
+static size_t num_context_switches = 0;
 
 static int verbose_p = 1;
 void equiv_verbose_on(void) {
@@ -38,6 +44,21 @@ void equiv_verbose_off(void) {
 } while(0)
     
 
+// retrieve the thread with the specified tid from the queue
+eq_th_t * volatile retrieve_tid_from_queue(uint32_t tid) {
+    eq_th_t * volatile th = eq_pop(&equiv_runq);
+    uint32_t first_tid = cur_thread->tid;
+    while(th->tid != tid) {
+        eq_th_t * volatile old_thread = th;
+        th = eq_pop(&equiv_runq);
+        eq_push(&equiv_runq, old_thread);
+        if(th->tid == first_tid) {
+            panic("specified tid %d is not in the queue\n", tid);
+        }
+    }
+    return th;
+}
+
 /********************************************************************
  * create threads: this is roughly the code from mini-step and the 
  * test.
@@ -45,12 +66,23 @@ void equiv_verbose_off(void) {
  * make processes, put them on a runqueue.
  */
 
+
 static __attribute__((noreturn)) 
 void equiv_schedule(void) 
 {
     assert(cur_thread);
 
-    eq_th_t *th = eq_pop(&equiv_runq);
+    eq_th_t *th = NULL;
+    // if we have context switches remaining, switch to the next thread in the schedule
+    // otherwise we'll just run whatever the next thread in the queue is to completion
+    if(ctx_switch_idx < num_context_switches) {
+        eq_th_t *th = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
+        // eq_th_t *th = eq_pop(&equiv_runq);
+    }
+    else{
+        eq_th_t *th = eq_pop(&equiv_runq);
+    }
+    
     if(th) {
         if(th->verbose_p)
             output("switching from tid=%d,pc=%x to tid=%d,pc=%x,sp=%x\n", 
@@ -76,12 +108,12 @@ enum {
     EQUIV_PUTC = 1
 };
 
-void set_ctx_switch_instr_num(uint32_t n) {
-    ctx_switch_instr_num = n;
-}
 
-void set_ctx_switch_tid(uint32_t tid) {
+void set_ctx_switches(uint32_t* tid, uint32_t* n, uint32_t num_context_switches) {
+    ctx_switch_instr_num = n;
     ctx_switch_tid = tid;
+    ctx_switch_idx = 0;
+    num_context_switches = num_context_switches;
 }
 
 // in staff-start.S
@@ -229,24 +261,27 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
             th->tid, th->inst_cnt, pc, th->reg_hash);
 
     gcc_mb();
-    if (th->tid == ctx_switch_tid && th->inst_cnt == ctx_switch_instr_num) {
+    // if we reach the instruction on the tid specified in the schedule, context switch
+    // equiv_schedule will look at the array to figure out the next thread in the schedule, and switch to that
+    if (th->tid == ctx_switch_tid[ctx_switch_idx] && th->inst_cnt == ctx_switch_instr_num[ctx_switch_idx]) {
+        ctx_switch_idx++;
         equiv_schedule();
     }
-    //equiv_schedule();
 }
 
 // run all the threads.
 void equiv_run(void) {
-    cur_thread = eq_pop(&equiv_runq);
-    uint32_t first_tid = cur_thread->tid;
-    while(cur_thread->tid != ctx_switch_tid) {
-        eq_th_t * volatile old_thread = cur_thread;
-        cur_thread = eq_pop(&equiv_runq);
-        eq_push(&equiv_runq, old_thread);
-        if(cur_thread->tid == first_tid) {
-            panic("specified ctx_switch_tid %d is not in the queue\n", ctx_switch_tid);
-        }
-    }
+    // cur_thread = eq_pop(&equiv_runq);
+    // uint32_t first_tid = cur_thread->tid;
+    // while(cur_thread->tid != ctx_switch_tid) {
+    //     eq_th_t * volatile old_thread = cur_thread;
+    //     cur_thread = eq_pop(&equiv_runq);
+    //     eq_push(&equiv_runq, old_thread);
+    //     if(cur_thread->tid == first_tid) {
+    //         panic("specified ctx_switch_tid %d is not in the queue\n", ctx_switch_tid);
+    //     }
+    // }
+    cur_thread = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
     if(!cur_thread)
         panic("empty run queue?\n");
 
