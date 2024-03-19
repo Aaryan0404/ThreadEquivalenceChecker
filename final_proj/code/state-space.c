@@ -5,15 +5,13 @@
 #include "permutations.h"
 #include "memory.h"
 
-#define NUM_VARS 3
-#define NUM_FUNCS 3
+#define NUM_VARS 2
+#define NUM_FUNCS 2
 
 /*
 POTENTIAL TODOS:
-1) Support for multiple variables - DONE
-2) Multiple functions (and equivalent threads)
-3) Multiple context switches
-4) Memory - Read/write set consistency with VM
+1) Memory - Read/write set consistency with VM
+2) Speed - run interleaving after generating each permutation
 */
 
 /*
@@ -23,11 +21,7 @@ APPLICATIONS:
 - c standard atomics
 */
 
-// memory: write kfree
-// speed: run interleaving after generating each permutation
-// memory: use equiv_refresh so we only have n_funcs threads
-
-#define HASH_TABLE_SIZE 1000 // Adjust based on expected number of unique combinations
+#define HASH_TABLE_SIZE 8000 // Adjust based on expected number of unique combinations
 
 typedef struct {
     uint32_t *tids;
@@ -250,12 +244,12 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
             tids[sched_idx][i] = convert_funcid_to_tid(tids[sched_idx][i], last_tid);
         }
 
-        if (!checkAndAddToHashTable(tids[sched_idx], instr_nums[sched_idx], ncs)) {
-            continue; // Skip this combination
-        }
+        // if (!checkAndAddToHashTable(tids[sched_idx], instr_nums[sched_idx], ncs)) {
+        //     continue; // Skip this combination
+        // }
 
         for (int i = 0; i < ncs; i++) {
-            printk("(%d", tids[sched_idx][i]);
+            printk("(%d", tids[sched_idx][i] - 1);
             printk(", %d) ", instr_nums[sched_idx][i]);
         }
         printk("\n");
@@ -304,14 +298,14 @@ void notmain() {
     // allocate and initialize global vars
     global_var = kmalloc(sizeof(int));
     global_var2 = kmalloc(sizeof(int));
-    global_var3 = kmalloc(sizeof(int));
+    // global_var3 = kmalloc(sizeof(int));
     *global_var = 5;
     *global_var2 = 10;
-    *global_var3 = 15;
+    // *global_var3 = 15;
     
     // convert global vars to an array of pointers
-    int *global_vars[NUM_VARS] = {global_var, global_var2, global_var3};
-    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int), sizeof(int)};
+    int *global_vars[NUM_VARS] = {global_var, global_var2};
+    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int)};
 
     memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes}; 
     initialize_memory_state(&initial_mem_state);
@@ -344,44 +338,10 @@ void notmain() {
     executables[1].num_vars = 0; 
     executables[1].var_list = NULL;
 
-    executables[2].func_addr = (func_ptr)funcIndep;
-    executables[2].num_vars = 0;
-    executables[2].var_list = NULL;
+    // executables[2].func_addr = (func_ptr)funcIndep;
+    // executables[2].num_vars = 0;
+    // executables[2].var_list = NULL;
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-    // on a single thread, run each interleaving
-    // for loop of 2d array dim 0 itrs, with 
-    // each itr having dim 1 func executions
-    // for each itr,
-        // capture memory state
-        // hash it 
-        // store in array (set) of valid hashes
-        // reset memory state
-
-    // generate schedule for thread 0, thread 1
-    // for i from 0 to 500
-        // schedule a
-        // {t0, t0, t0, ..., t0} i times
-        // {t1, ...} to completion
-
-        // schedule b
-        // {t1, t1, t1, ..., t1} i times
-        // {t0, ...} to completion
-    // total of 1000 schedules
-
     run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, ncs); 
-    // do equiv init
-    // launch 2 threads
-        // thread 0: funcMA
-        // thread 1: funcMS
-        // run schedule a
-    // equiv run
-    // capture global state
-    // hash it
-    // compare to set of valid hashes - if match, print "valid" else, print "invalid"
-    // reset memory state
-    // equiv_refresh
-        // thread 0: funcMS
-        // thread 1: funcMA
-        // run schedule b
 }
