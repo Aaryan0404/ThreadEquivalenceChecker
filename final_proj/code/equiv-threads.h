@@ -51,6 +51,7 @@ void sys_equiv_exit(uint32_t ret);
 void equiv_refresh(eq_th_t *th);
 
 void disable_ctx_switch();
+void equiv_empty_queue();
 
 // don't set stack pointer.
 eq_th_t *equiv_fork_nostack(void (*fn)(void**), void **args, uint32_t expected_hash);

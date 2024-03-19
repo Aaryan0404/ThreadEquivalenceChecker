@@ -123,6 +123,7 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
         num_instrs[f_idx] = th->inst_cnt;
     }
 
+    //equiv_empty_queue();
     for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
         equiv_refresh(threads[f_idx]);
     }
@@ -221,9 +222,10 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
         set_ctx_switches(tids[sched_idx], instr_nums[sched_idx], ncs); 
         equiv_run();
 
+        //equiv_empty_queue();
         for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
-        equiv_refresh(threads[f_idx]);
-    }
+            equiv_refresh(threads[f_idx]);
+        }
 
         uint64_t hash = capture_memory_state(initial_mem_state);
         bool valid = false;
