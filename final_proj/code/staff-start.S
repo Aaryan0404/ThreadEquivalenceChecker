@@ -112,6 +112,10 @@ MK_FN(small2)
     mov r0, #0
     swi 1
 
+MK_FN(sys_equiv_switch)
+    mov r0, #2
+    swi 1
+
 MK_FN(sys_equiv_exit)
     mov r0, #0
     swi 1

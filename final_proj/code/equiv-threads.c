@@ -55,14 +55,17 @@ eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
         printk("popped thread %d\n", th->tid);
         eq_th_t * old_thread = th;
         th = eq_pop(&equiv_runq);
+        printk("#1 pushing tid %d\n", old_thread->tid);
         eq_push(&temp_equiv_runq, old_thread);
         if(th->tid == first_tid) {
             panic("specified tid %d is not in the queue\n", tid);
         }
     }
     while(temp_equiv_runq.head) {
-        printk("pushing thread %d\n", th->tid);
-        eq_push(&equiv_runq, eq_pop(&temp_equiv_runq));
+        //printk("pushing thread %d\n", th->tid);
+        eq_th_t * temp_th = eq_pop(&temp_equiv_runq);
+        printk("#2 pushing tid %d\n", temp_th->tid);
+        eq_push(&equiv_runq, temp_th);
     }
     return th;
 }
@@ -86,6 +89,7 @@ void equiv_schedule(void)
     // otherwise we'll just run whatever the next thread in the queue is to completion
     if(ctx_switch_idx < num_context_switches) {
         printk("ctx_switch_idx: %d\n", ctx_switch_idx);
+        printk("#3 pushing tid %d\n", cur_thread->tid);
         eq_push(&equiv_runq, cur_thread);
         th = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
     }
@@ -115,7 +119,8 @@ int syscall_trampoline(int sysnum, ...);
 
 enum {
     EQUIV_EXIT = 0,
-    EQUIV_PUTC = 1
+    EQUIV_PUTC = 1,
+    EQUIV_SWITCH = 2
 };
 
 
@@ -134,6 +139,8 @@ void disable_ctx_switch(){
 
 // in staff-start.S
 void sys_equiv_exit(uint32_t ret);
+
+void sys_equiv_switch(uint32_t ret);
 
 // for the moment we just die.
 static void check_sp(eq_th_t *th) {
@@ -182,6 +189,7 @@ static int equiv_syscall_handler(regs_t *r) {
 
         // this could be cleaner: sorry.
         eq_th_t *th = eq_pop(&equiv_runq);
+        printk("thread %d next\n", th->tid);
 
         // if no more threads we are done.
         if(!th) {
@@ -192,6 +200,10 @@ static int equiv_syscall_handler(regs_t *r) {
         cur_thread = th;
         mismatch_run(&cur_thread->regs);
         not_reached();
+
+    // case EQUIV_SWITCH:
+    //     trace("thread=%d switched back with code=%d, hash=%x\n", 
+    //         th->tid, r->regs[1], th->reg_hash);
 
     default:
         panic("illegal system call: %d\n", sysno);
@@ -237,8 +249,9 @@ eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash) {
     th->regs = equiv_regs_init(th);
     check_sp(th);
 
+    printk("#4 pushing tid %d\n", th->tid);
     eq_push(&equiv_runq, th);
-    printk("FORK pushed thread to queue %d\n", th->tid);
+    //printk("FORK pushed thread to queue %d\n", th->tid);
     return th;
 }
 eq_th_t *equiv_fork_nostack(void (*fn)(void**), void **args, uint32_t expected_hash) {
@@ -254,6 +267,7 @@ void equiv_refresh(eq_th_t *th) {
     check_sp(th);
     th->inst_cnt = 0;
     th->reg_hash = 0;
+    printk("#5 pushing tid %d\n", th->tid);
     eq_push(&equiv_runq, th);
 }
 
