@@ -5,8 +5,8 @@
 #include "permutations.h"
 #include "memory.h"
 
-#define NUM_VARS 2
-#define NUM_FUNCS 2
+#define NUM_VARS 3
+#define NUM_FUNCS 3
 
 /*
 POTENTIAL TODOS:
@@ -213,13 +213,13 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
             instr_counter[all_schedules[i][j]] += 1;
         }
     }
-
+    int actual_ncs = ncs + num_funcs - 1;
     // create an array of tids and instruction numbers
     uint32_t **tids       = (uint32_t **)kmalloc(count * sizeof(uint32_t *));
     uint32_t **instr_nums = (uint32_t **)kmalloc(count * sizeof(uint32_t *));
     for (int i = 0; i < count; i++) {
-        tids[i] = (uint32_t *)kmalloc(ncs * sizeof(uint32_t));
-        instr_nums[i] = (uint32_t *)kmalloc(ncs * sizeof(uint32_t));
+        tids[i] = (uint32_t *)kmalloc(actual_ncs * sizeof(uint32_t));
+        instr_nums[i] = (uint32_t *)kmalloc(actual_ncs * sizeof(uint32_t));
     }
 
     // fill in the tids and instruction numbers
@@ -229,7 +229,7 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
 
         int ncs_idx = 0; 
         for (int c = 0; c < total_instrs - 1; c++) {
-            if (tid[c] != tid[c + 1] && ncs_idx < ncs) {
+            if (tid[c] != tid[c + 1] && ncs_idx < actual_ncs) {
                 tids[i][ncs_idx] = tid[c] + 1; 
                 instr_nums[i][ncs_idx] = instr_num[c] + 1;
                 ncs_idx += 1;
@@ -240,7 +240,7 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
     for (int sched_idx = 0; sched_idx < count; sched_idx++) {
         reset_memory_state(initial_mem_state);
         
-        for (int i = 0; i < ncs; i++) {
+        for (int i = 0; i < actual_ncs; i++) {
             tids[sched_idx][i] = convert_funcid_to_tid(tids[sched_idx][i], last_tid);
         }
 
@@ -248,14 +248,15 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
         //     continue; // Skip this combination
         // }
 
-        for (int i = 0; i < ncs; i++) {
+        for (int i = 0; i < actual_ncs; i++) {
             printk("(%d", tids[sched_idx][i] - 1);
             printk(", %d) ", instr_nums[sched_idx][i]);
         }
         printk("\n");
+        //continue;
 
         // load next schedule
-        set_ctx_switches(tids[sched_idx], instr_nums[sched_idx], ncs); 
+        set_ctx_switches(tids[sched_idx], instr_nums[sched_idx], actual_ncs); 
         equiv_run();
 
         // reset threads
@@ -288,7 +289,7 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
 
 void notmain() {    
     // number of context switches
-    int ncs = 1; 
+    int ncs = 2; 
 
     // arbitrary number of global vars, 
     // wrapped in initial_mem_state struct
@@ -298,14 +299,14 @@ void notmain() {
     // allocate and initialize global vars
     global_var = kmalloc(sizeof(int));
     global_var2 = kmalloc(sizeof(int));
-    // global_var3 = kmalloc(sizeof(int));
+    global_var3 = kmalloc(sizeof(int));
     *global_var = 5;
     *global_var2 = 10;
-    // *global_var3 = 15;
+    *global_var3 = 15;
     
     // convert global vars to an array of pointers
-    int *global_vars[NUM_VARS] = {global_var, global_var2};
-    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int)};
+    int *global_vars[NUM_VARS] = {global_var, global_var2, global_var3};
+    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int), sizeof(int)};
 
     memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes}; 
     initialize_memory_state(&initial_mem_state);
@@ -338,9 +339,9 @@ void notmain() {
     executables[1].num_vars = 0; 
     executables[1].var_list = NULL;
 
-    // executables[2].func_addr = (func_ptr)funcIndep;
-    // executables[2].num_vars = 0;
-    // executables[2].var_list = NULL;
+    executables[2].func_addr = (func_ptr)funcIndep;
+    executables[2].num_vars = 0;
+    executables[2].var_list = NULL;
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
     run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, ncs); 
