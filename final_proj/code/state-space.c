@@ -21,46 +21,6 @@ APPLICATIONS:
 - c standard atomics
 */
 
-#define HASH_TABLE_SIZE 8000 // Adjust based on expected number of unique combinations
-
-typedef struct {
-    uint32_t *tids;
-    uint32_t *instr_nums;
-    int ncs;
-} HashEntry;
-
-HashEntry hashTable[HASH_TABLE_SIZE];
-
-unsigned int hashFunction(uint32_t *tids, uint32_t *instr_nums, int ncs) {
-    unsigned int hash = 0;
-    for (int i = 0; i < ncs; i++) {
-        hash = (hash * 31) + tids[i] + instr_nums[i];
-    }
-    return hash % HASH_TABLE_SIZE;
-}
-
-int checkAndAddToHashTable(uint32_t *tids, uint32_t *instr_nums, int ncs) {
-    unsigned int hash = hashFunction(tids, instr_nums, ncs);
-    if (hashTable[hash].tids != NULL) {
-        // Check for collision and equality
-        for (int i = 0; i < ncs; i++) {
-            if (hashTable[hash].tids[i] != tids[i] || hashTable[hash].instr_nums[i] != instr_nums[i]) {
-                return 0; // Collision or not equal, skip this combination
-            }
-        }
-        return 1; // Combination already exists
-    } else {
-        // Add new combination to hash table
-        hashTable[hash].tids = kmalloc(ncs * sizeof(uint32_t));
-        hashTable[hash].instr_nums = kmalloc(ncs * sizeof(uint32_t));
-        for (int i = 0; i < ncs; i++) {
-            hashTable[hash].tids[i] = tids[i];
-            hashTable[hash].instr_nums[i] = instr_nums[i];
-        }
-        return 1; // New combination added
-    }
-}
-
 // USER CODE
 int* global_var;
 int* global_var2;
@@ -109,11 +69,8 @@ void find_good_hashes(function_exec* executables, size_t num_funcs, int **itl, s
         valid_hashes[i] = hash;
     }
 }
-uint32_t convert_funcid_to_tid(uint32_t func_id, uint32_t last_tid){
-    return func_id + last_tid;
-}
 
-void interleave(int *counts, int *limits, int *result, int *count, int n, int total_chars, int switches, int ncs, int level, int lastInt, int **interleave_output) {
+void interleave(int *counts, int *limits, int *result, uint32_t *count, int n, int total_chars, int switches, int ncs, int level, int lastInt, int **interleave_output) {
     if (level == total_chars && switches == ncs) {
         if (interleave_output != NULL) {
             for (int i = 0; i < level; i++) {
@@ -144,33 +101,46 @@ void interleave(int *counts, int *limits, int *result, int *count, int n, int to
     }
 }
 
-// runs each interleaving for a given number of instructions
-void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs) {
-    equiv_init();
-    uint32_t max_instrs = 0;
-    uint32_t last_tid = 0; 
+void reset_threads(eq_th_t **thread_arr, size_t num_threads){
+    for (int i = 0; i < num_threads; i++) {
+        equiv_refresh(thread_arr[i]);
+    }
+}
 
-    // calculate num instrs for each function
-    // via sequential execution
-    disable_ctx_switch();
-    int* num_instrs = kmalloc(num_funcs * sizeof(int));
-    eq_th_t *threads[num_funcs];
+// init threads from executables and store total num instructions per func in num_instrs 
+size_t init_threads(eq_th_t **thread_arr, function_exec* executables, int **itl, size_t num_funcs, int *num_instrs) {
     for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
         let th = equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
-        threads[f_idx] = th;
+        thread_arr[f_idx] = th;
         equiv_run();
         num_instrs[f_idx] = th->inst_cnt;
     }
-
-    // reset threads
-    for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
-        equiv_refresh(threads[f_idx]);
-    }
-
-    // Number instructions per function   
-    int total_instrs = 0;
+    size_t total_instrs = 0;
     for (int i = 0; i < num_funcs; i++) {
         total_instrs += num_instrs[i];
+    }
+    return total_instrs;
+}
+
+// return total number of schedules that are possible with this number of ncs
+uint32_t get_num_schedules(int *num_instrs, size_t total_instrs, size_t num_funcs, int ncs){
+    int result[total_instrs]; // Result array to store one interleave
+    int counts[num_funcs]; // Array to keep track of the counts of each character
+    for (int i = 0; i < num_funcs; i++) {
+        counts[i] = 0; // Initialize counts as 0
+    }
+
+    uint32_t count = 0; // Counter for the number of interleavings
+    interleave(counts, num_instrs, result, &count, num_funcs, total_instrs, 0, ncs + num_funcs, 0, -1, NULL); // First call to get count
+    return count;
+}
+
+// fill in tids and instr_nums with the schedule
+void generate_schedules(int *num_instrs, size_t total_instrs, size_t num_funcs, int ncs, uint32_t count, uint32_t **tids, uint32_t **instr_nums){
+    // arr is count * total_instrs, will store all schedules
+    int **all_schedules = (int **)kmalloc(count * sizeof(int *));
+    for (int i = 0; i < count; i++) {
+        all_schedules[i] = (int *)kmalloc(total_instrs * sizeof(int));
     }
 
     int result[total_instrs]; // Result array to store one interleave
@@ -178,19 +148,8 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
     for (int i = 0; i < num_funcs; i++) {
         counts[i] = 0; // Initialize counts as 0
     }
-
-    int count = 0; // Counter for the number of interleavings
-    
-    interleave(counts, num_instrs, result, &count, num_funcs, total_instrs, 0, ncs + num_funcs, 0, -1, NULL); // First call to get count
-    
-    // arr is count * total_instrs, will store all schedules
-    int **all_schedules = (int **)kmalloc(count * sizeof(int *));
-    for (int i = 0; i < count; i++) {
-        all_schedules[i] = (int *)kmalloc(total_instrs * sizeof(int));
-    }
-
-    count = 0; // Reset count for the second call
-    interleave(counts, num_instrs, result, &count, num_funcs, total_instrs, 0, ncs + num_funcs, 0, -1, all_schedules); // Second call to fill the array
+    uint32_t temp_count = 0; // Reset count for the second call
+    interleave(counts, num_instrs, result, &temp_count, num_funcs, total_instrs, 0, ncs + num_funcs, 0, -1, all_schedules); // Second call to fill the array
 
     // create an array of instruction indices (num_interleavings * num_funcs)
     int **instr_idx = (int **)kmalloc(count * sizeof(int *));
@@ -214,13 +173,6 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
         }
     }
     int actual_ncs = ncs + num_funcs - 1;
-    // create an array of tids and instruction numbers
-    uint32_t **tids       = (uint32_t **)kmalloc(count * sizeof(uint32_t *));
-    uint32_t **instr_nums = (uint32_t **)kmalloc(count * sizeof(uint32_t *));
-    for (int i = 0; i < count; i++) {
-        tids[i] = (uint32_t *)kmalloc(actual_ncs * sizeof(uint32_t));
-        instr_nums[i] = (uint32_t *)kmalloc(actual_ncs * sizeof(uint32_t));
-    }
 
     // fill in the tids and instruction numbers
     for (int i = 0; i < count; i++) {
@@ -236,17 +188,42 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
             }
         }
     }
+}
+
+// runs each interleaving for a given number of instructions
+void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs) {
+    equiv_init();
+    uint32_t max_instrs = 0;
+
+    // calculate num instrs for each function
+    // via sequential execution
+    disable_ctx_switch();
+    int* num_instrs = kmalloc(num_funcs * sizeof(int));
+    eq_th_t *threads[num_funcs];
+    size_t total_instrs = init_threads(threads, executables, itl, num_funcs, num_instrs);
+    reset_threads(threads, num_funcs);
+    
+    // calculate number of schedules
+    uint32_t count = get_num_schedules(num_instrs, total_instrs, num_funcs, ncs);
+
+    int actual_ncs = ncs + num_funcs - 1;
+
+    uint32_t **tids       = (uint32_t **)kmalloc(count * sizeof(uint32_t *));
+    uint32_t **instr_nums = (uint32_t **)kmalloc(count * sizeof(uint32_t *));
+    for (int i = 0; i < count; i++) {
+        tids[i] = (uint32_t *)kmalloc(actual_ncs * sizeof(uint32_t));
+        instr_nums[i] = (uint32_t *)kmalloc(actual_ncs * sizeof(uint32_t));
+    }
+
+    // generate schedules
+    generate_schedules(num_instrs, total_instrs, num_funcs, ncs, count, tids, instr_nums);
 
     for (int sched_idx = 0; sched_idx < count; sched_idx++) {
         reset_memory_state(initial_mem_state);
         
         for (int i = 0; i < actual_ncs; i++) {
-            tids[sched_idx][i] = convert_funcid_to_tid(tids[sched_idx][i], last_tid);
+            tids[sched_idx][i] = tids[sched_idx][i];
         }
-
-        // if (!checkAndAddToHashTable(tids[sched_idx], instr_nums[sched_idx], ncs)) {
-        //     continue; // Skip this combination
-        // }
 
         for (int i = 0; i < actual_ncs; i++) {
             printk("(%d", tids[sched_idx][i] - 1);
@@ -258,11 +235,7 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
         // load next schedule
         set_ctx_switches(tids[sched_idx], instr_nums[sched_idx], actual_ncs); 
         equiv_run();
-
-        // reset threads
-        for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
-            equiv_refresh(threads[f_idx]);
-        }
+        reset_threads(threads, num_funcs);
 
         uint64_t hash = capture_memory_state(initial_mem_state);
         bool valid = false;
@@ -288,8 +261,8 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
 }
 
 void notmain() {    
-    // number of context switches
-    int ncs = 2; 
+    // number of interleaved context switches (remaining context switches will result in threads being run to completion)
+    int interleaved_ncs = 2; 
 
     // arbitrary number of global vars, 
     // wrapped in initial_mem_state struct
@@ -344,5 +317,5 @@ void notmain() {
     executables[2].var_list = NULL;
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-    run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, ncs); 
+    run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs); 
 }
