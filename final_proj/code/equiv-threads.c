@@ -46,8 +46,9 @@ void equiv_verbose_off(void) {
 
 // retrieve the thread with the specified tid from the queue
 eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
-    eq_th_t *  th = eq_pop(&equiv_runq);
+    eq_th_t * th = eq_pop(&equiv_runq);
     printk("retrieved thread %d\n", th->tid);
+
     uint32_t first_tid = cur_thread->tid;
     rq_t temp_equiv_runq;
     while(th->tid != tid) {
@@ -79,7 +80,7 @@ void equiv_schedule(void)
     assert(cur_thread);
 
     eq_th_t * th = NULL;
-    printk("equiv_schedule\n");
+    // printk("equiv_schedule\n");
     // if we have context switches remaining, switch to the next thread in the schedule
     // otherwise we'll just run whatever the next thread in the queue is to completion
     if(ctx_switch_idx < num_context_switches) {
