@@ -47,6 +47,90 @@ void interleave(int *counts, int *limits, int *result, uint32_t *count, int n, i
     }
 }
 
+void interleave_and_run(int *counts, int *limits, int *result, uint32_t *count, int num_funcs, int total_chars, int switches, int ncs, int level, int lastInt, eq_th_t **thread_arr, memory_segments* initial_mem_state, size_t num_perms, uint64_t *valid_hashes) {
+    if (level == total_chars && switches == ncs) {
+        for (int i = 0; i < level; i++) {
+            printk("%d", result[i]);
+        }
+        printk("\n");
+        // TODO: make sure level == total_instrs
+        int instr_idx[level];
+            
+        int* instr_counter = kmalloc(num_funcs * sizeof(int));
+        for (int j = 0; j < num_funcs; j++) {
+            instr_counter[j] = 0;
+        }
+
+        // fill in the instruction indices by func
+        for (int j = 0; j < level; j++) {
+            instr_idx[j] = instr_counter[result[j]];
+            instr_counter[result[j]] += 1;
+        }
+        int actual_ncs = ncs - 1;
+        int ncs_idx = 0; 
+
+        uint32_t* tids = kmalloc(actual_ncs * sizeof(uint32_t));
+        uint32_t* instr_nums = kmalloc(actual_ncs * sizeof(uint32_t));
+
+        for (int c = 0; c < level - 1; c++) {
+            if (result[c] != result[c + 1] && ncs_idx < actual_ncs) {
+                tids[ncs_idx] = result[c] + 1; 
+                instr_nums[ncs_idx] = instr_idx[c] + 1;
+                ncs_idx += 1;
+            }
+        }
+        for (int i = 0; i < actual_ncs; i++) {
+            printk("(%d", tids[i] - 1);
+            printk(", %d) ", instr_nums[i]);
+        }
+        printk("\n");
+
+        reset_memory_state(initial_mem_state);
+        set_ctx_switches(tids, instr_nums, actual_ncs); 
+        equiv_run();
+        reset_threads(thread_arr, num_funcs);
+
+        uint64_t hash = capture_memory_state(initial_mem_state);
+        bool valid = false;
+        for (size_t j = 0; j < num_perms; j++) {
+            if (hash == valid_hashes[j]) {
+                valid = true;
+                break;
+            }
+        }
+
+        if (valid) {
+            for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
+                printk("valid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
+            }
+        } else {
+            for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
+                printk("invalid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
+            }
+        }
+        printk("\n");
+        printk("\n");
+        (*count)++;
+        return;
+    }
+
+    int remaining_switches = ncs - switches;
+    int remaining_slots = total_chars - level;
+    if (remaining_switches > remaining_slots) {
+        return;
+    }
+
+    for (int i = 0; i < num_funcs; i++) {
+        if (counts[i] < limits[i] && (i == lastInt || switches < ncs)) {
+            int newSwitches = (i != lastInt) ? switches + 1 : switches;
+            result[level] = i;
+            counts[i]++;
+            interleave_and_run(counts, limits, result, count, num_funcs, total_chars, newSwitches, ncs, level + 1, i, thread_arr, initial_mem_state, num_perms, valid_hashes);
+            counts[i]--;
+        }
+    }
+}
+
 void reset_threads(eq_th_t **thread_arr, size_t num_threads){
     for (int i = 0; i < num_threads; i++) {
         equiv_refresh(thread_arr[i]);
@@ -136,6 +220,18 @@ void generate_schedules(int *num_instrs, size_t total_instrs, size_t num_funcs, 
     }
 }
 
+// fill in tids and instr_nums with the schedule
+void generate_and_run_schedules(int *num_instrs, size_t total_instrs, size_t num_funcs, int ncs, eq_th_t **thread_arr, memory_segments* initial_mem_state, size_t num_perms, uint64_t *valid_hashes){
+
+    int result[total_instrs]; // Result array to store one interleave
+    int counts[num_funcs]; // Array to keep track of the counts of each character
+    for (int i = 0; i < num_funcs; i++) {
+        counts[i] = 0; // Initialize counts as 0
+    }
+    uint32_t temp_count = 0; // Reset count for the second call
+    interleave_and_run(counts, num_instrs, result, &temp_count, num_funcs, total_instrs, 0, ncs + num_funcs, 0, -1, thread_arr, initial_mem_state, num_perms, valid_hashes); // Second call to fill the array
+}
+
 // runs each interleaving for a given number of instructions
 void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs) {
     equiv_init();
@@ -205,4 +301,19 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
         printk("\n");
         printk("\n");
     }
+}
+
+// runs each interleaving for a given number of instructions
+void run_interleavings_v2(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs) {
+    equiv_init();
+    uint32_t max_instrs = 0;
+
+    // calculate num instrs for each function
+    // via sequential execution
+    disable_ctx_switch();
+    int* num_instrs = kmalloc(num_funcs * sizeof(int));
+    eq_th_t *threads[num_funcs];
+    size_t total_instrs = init_threads(threads, executables, itl, num_funcs, num_instrs);
+    reset_threads(threads, num_funcs);
+    generate_and_run_schedules(num_instrs, total_instrs, num_funcs, ncs, threads, initial_mem_state, num_perms, valid_hashes);
 }
