@@ -40,7 +40,7 @@ void equiv_init(void);
 
 eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash);
 
-eq_th_t * volatile retrieve_tid_from_queue(uint32_t tid);
+eq_th_t * retrieve_tid_from_queue(uint32_t tid);
 
 // run all the threads until there are no more.
 void equiv_run(void);
@@ -49,6 +49,8 @@ void equiv_run(void);
 void sys_equiv_exit(uint32_t ret);
 
 void equiv_refresh(eq_th_t *th);
+
+void disable_ctx_switch();
 
 // don't set stack pointer.
 eq_th_t *equiv_fork_nostack(void (*fn)(void**), void **args, uint32_t expected_hash);
