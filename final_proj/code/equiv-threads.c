@@ -50,7 +50,6 @@ eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
     printk("retrieved thread at start %d\n", th->tid);
 
     uint32_t first_tid = cur_thread->tid;
-    rq_t temp_equiv_runq;
     while(th->tid != tid) {
         printk("popped thread %d\n", th->tid);
         eq_th_t * old_thread = th;
@@ -61,12 +60,6 @@ eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
             panic("specified tid %d is not in the queue\n", tid);
         }
     }
-    // while(temp_equiv_runq.head) {
-    //     //printk("pushing thread %d\n", th->tid);
-    //     eq_th_t * temp_th = eq_pop(&temp_equiv_runq);
-    //     printk("#2 pushing tid %d\n", temp_th->tid);
-    //     eq_push(&equiv_runq, temp_th);
-    // }
     return th;
 }
 
