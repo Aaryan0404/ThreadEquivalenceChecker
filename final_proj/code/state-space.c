@@ -65,29 +65,6 @@ uint32_t convert_funcid_to_tid(uint32_t func_id, uint32_t last_tid){
     return func_id + last_tid;
 }
 
-// void interleave(int *counts, int *limits, char *result, int *count, int n, int total_chars, int switches, int ncs, int level, char lastChar) {
-//     if (level == total_chars && switches == ncs) {
-//         result[level] = '\0';
-//         printk("%s\n", result);
-//         (*count)++;
-//         return;
-//     }
-
-//     for (int i = 0; i < n; i++) {
-//         if (counts[i] < limits[i] && ((i + '0') == lastChar || switches < ncs)) {
-//             //int newSwitches = ((i + '0') != lastChar) ? switches + 1 : switches;
-//             int newSwitches = switches;
-//             if((i + '0') != lastChar) {
-//                 newSwitches = switches + 1;
-//             }
-//             result[level] = i + '0';
-//             counts[i]++;
-//             interleave(counts, limits, result, count, n, total_chars, newSwitches, ncs, level + 1, (i + '0'));
-//             counts[i]--;
-//         }
-//     }
-// }
-
 void interleave(int *counts, int *limits, int *result, int *count, int n, int total_chars, int switches, int ncs, int level, int lastInt, int **interleave_output) {
     if (level == total_chars && switches == ncs) {
         if (interleave_output != NULL) {
@@ -118,7 +95,7 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
     uint32_t max_instrs = 0;
     uint32_t last_tid = 0; 
 
-    // TODO: calculate num instrs for each function
+    // calculate num instrs for each function
     // via sequential execution
     disable_ctx_switch();
     int* num_instrs = kmalloc(num_funcs * sizeof(int));
@@ -128,10 +105,8 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
         equiv_run();
         num_instrs[f_idx] = th->inst_cnt;
     }
-    // Number instructions per function 
-    // int num_instrs[] = {2, 2, 2};
 
-    
+    // Number instructions per function   
     int total_instrs = 0;
     for (int i = 0; i < num_funcs; i++) {
         total_instrs += num_instrs[i];
@@ -203,8 +178,6 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
 
     for (int sched_idx = 0; sched_idx < count; sched_idx++) {
         reset_memory_state(initial_mem_state);
-        //eq_th_t *threads[num_funcs];
-
         
         for (int i = 0; i < ncs; i++) {
             printk("(%d", tids[sched_idx][i]);
@@ -222,8 +195,6 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
             last_tid += 1;
         }
 
-        
-        
         set_ctx_switches(tids[sched_idx], instr_nums[sched_idx], ncs); 
         equiv_run();
 
@@ -248,7 +219,6 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
         printk("\n");
         printk("\n");
     }
-    //printk("\n");
 }
 
 void notmain() {    
@@ -275,9 +245,9 @@ void notmain() {
 
     // print statement that shows value of 
     // initial memory state
-    // for (int i = 0; i < initial_mem_state.num_ptrs; i++) {
-    //     printk("initial_mem_state.ptr_list[%d]: %d\n", i, *((int *)initial_mem_state.ptr_list[i]));
-    // }
+    for (int i = 0; i < initial_mem_state.num_ptrs; i++) {
+        printk("initial_mem_state.ptr_list[%d]: %d\n", i, *((int *)initial_mem_state.ptr_list[i]));
+    }
 
     // dependeing on num functions, generate
     // a 2d array of function interleavings (sequential outcomes)
