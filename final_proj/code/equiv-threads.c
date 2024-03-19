@@ -77,7 +77,6 @@ void equiv_schedule(void)
     // otherwise we'll just run whatever the next thread in the queue is to completion
     if(ctx_switch_idx < num_context_switches) {
         th = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx - 1]);
-        // eq_th_t *th = eq_pop(&equiv_runq);
     }
     else{
         th = eq_pop(&equiv_runq);
@@ -280,16 +279,6 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
 
 // run all the threads.
 void equiv_run(void) {
-    // cur_thread = eq_pop(&equiv_runq);
-    // uint32_t first_tid = cur_thread->tid;
-    // while(cur_thread->tid != ctx_switch_tid) {
-    //     eq_th_t * volatile old_thread = cur_thread;
-    //     cur_thread = eq_pop(&equiv_runq);
-    //     eq_push(&equiv_runq, old_thread);
-    //     if(cur_thread->tid == first_tid) {
-    //         panic("specified ctx_switch_tid %d is not in the queue\n", ctx_switch_tid);
-    //     }
-    // }
     if(ctx_switch_idx < 0) {
         cur_thread = eq_pop(&equiv_runq);
     }
