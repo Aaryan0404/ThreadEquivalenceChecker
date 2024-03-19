@@ -49,6 +49,7 @@ eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
     eq_th_t *  th = eq_pop(&equiv_runq);
     uint32_t first_tid = cur_thread->tid;
     while(th->tid != tid) {
+        // printk("popped thread %d\n", th->tid);
         eq_th_t * old_thread = th;
         th = eq_pop(&equiv_runq);
         eq_push(&equiv_runq, old_thread);
@@ -73,6 +74,7 @@ void equiv_schedule(void)
     assert(cur_thread);
 
     eq_th_t * th = NULL;
+    printk("equiv_schedule\n");
     // if we have context switches remaining, switch to the next thread in the schedule
     // otherwise we'll just run whatever the next thread in the queue is to completion
     if(ctx_switch_idx < num_context_switches) {
@@ -227,6 +229,7 @@ eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash) {
     check_sp(th);
 
     eq_push(&equiv_runq, th);
+    printk("FORK pushed thread to queue %d\n", th->tid);
     return th;
 }
 eq_th_t *equiv_fork_nostack(void (*fn)(void**), void **args, uint32_t expected_hash) {
@@ -256,7 +259,7 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
 
     let regs = s->regs->regs;
     uint32_t pc = regs[15];
-    //output("tid=%d: pc=%x, cnt=%d\n", th->tid, pc, th->inst_cnt);
+    output("tid=%d: pc=%x, cnt=%d\n", th->tid, pc, th->inst_cnt);
 
     th->reg_hash = fast_hash_inc32(&th->regs, sizeof th->regs, th->reg_hash);
 
@@ -279,12 +282,17 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
 
 // run all the threads.
 void equiv_run(void) {
+    printk("starting equiv_run\n");
     if(ctx_switch_idx < 0) {
         cur_thread = eq_pop(&equiv_runq);
     }
     else{
-        cur_thread = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
+        printk("retrieving thread %d\n", ctx_switch_tid[ctx_switch_idx]);
+        if(cur_thread->tid != ctx_switch_tid[ctx_switch_idx]) {
+            cur_thread = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
+        }
     }
+    printk("starting thread %d\n", cur_thread->tid);
     
     if(!cur_thread)
         panic("empty run queue?\n");
