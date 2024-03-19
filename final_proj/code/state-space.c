@@ -120,6 +120,7 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
 
     // TODO: calculate num instrs for each function
     // via sequential execution
+    disable_ctx_switch();
     int* num_instrs = kmalloc(num_funcs * sizeof(int));
     for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
         let th = equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
@@ -143,6 +144,7 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
     }
 
     int count = 0; // Counter for the number of interleavings
+    
     interleave(counts, num_instrs, result, &count, num_funcs, total_instrs, 0, ncs + num_funcs, 0, -1, NULL); // First call to get count
     
     // arr is count * total_instrs, will store all schedules
@@ -223,7 +225,7 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
         printk("\n");
         printk("ncs: %d\n", ncs);
         set_ctx_switches(tids[sched_idx], instr_nums[sched_idx], ncs); 
-
+        printk("about ot equiv run\n");
         equiv_run();
         printk("threads[0]: %d\n", threads[0]);
 
