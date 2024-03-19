@@ -47,15 +47,20 @@ void equiv_verbose_off(void) {
 // retrieve the thread with the specified tid from the queue
 eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
     eq_th_t *  th = eq_pop(&equiv_runq);
+    printk("retrieved thread %d\n", th->tid);
     uint32_t first_tid = cur_thread->tid;
+    rq_t temp_equiv_runq;
     while(th->tid != tid) {
         // printk("popped thread %d\n", th->tid);
         eq_th_t * old_thread = th;
         th = eq_pop(&equiv_runq);
-        eq_push(&equiv_runq, old_thread);
+        eq_push(&temp_equiv_runq, old_thread);
         if(th->tid == first_tid) {
             panic("specified tid %d is not in the queue\n", tid);
         }
+    }
+    while(temp_equiv_runq.head) {
+        eq_push(&equiv_runq, eq_pop(&temp_equiv_runq));
     }
     return th;
 }
@@ -287,6 +292,7 @@ void equiv_run(void) {
         cur_thread = eq_pop(&equiv_runq);
     }
     else{
+        printk("current thread %d\n", cur_thread->tid);
         printk("retrieving thread %d\n", ctx_switch_tid[ctx_switch_idx]);
         if(cur_thread->tid != ctx_switch_tid[ctx_switch_idx]) {
             cur_thread = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
