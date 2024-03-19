@@ -5,8 +5,8 @@
 #include "permutations.h"
 #include "memory.h"
 
-#define NUM_VARS 2
-#define NUM_FUNCS 2
+#define NUM_VARS 3
+#define NUM_FUNCS 3
 
 /*
 POTENTIAL TODOS:
@@ -22,6 +22,10 @@ APPLICATIONS:
 - GPT generated lock-free data structures
 - c standard atomics
 */
+
+// memory: write kfree
+// speed: run interleaving after generating each permutation
+// memory: use equiv_refresh so we only have n_funcs threads
 
 // USER CODE
 int* global_var;
@@ -80,6 +84,7 @@ void interleave(int *counts, int *limits, int *result, int *count, int n, int to
         if (interleave_output != NULL) {
             for (int i = 0; i < level; i++) {
                 interleave_output[*count][i] = result[i];
+                
                 printk("%d", result[i]);
             }
             printk("\n");
@@ -251,8 +256,8 @@ void notmain() {
     *global_var3 = 15;
     
     // convert global vars to an array of pointers
-    int *global_vars[NUM_VARS] = {global_var, global_var2};//, global_var3};
-    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int)};//, sizeof(int)};
+    int *global_vars[NUM_VARS] = {global_var, global_var2, global_var3};
+    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int), sizeof(int)};
 
     memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes}; 
     initialize_memory_state(&initial_mem_state);
@@ -285,9 +290,9 @@ void notmain() {
     executables[1].num_vars = 0; 
     executables[1].var_list = NULL;
 
-    // executables[2].func_addr = (func_ptr)funcIndep;
-    // executables[2].num_vars = 0;
-    // executables[2].var_list = NULL;
+    executables[2].func_addr = (func_ptr)funcIndep;
+    executables[2].num_vars = 0;
+    executables[2].var_list = NULL;
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
     // on a single thread, run each interleaving

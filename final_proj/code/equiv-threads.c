@@ -4,7 +4,7 @@
 #include "equiv-threads.h"
 #include "fast-hash32.h"
 
-enum { stack_size = 8192 * 8 };
+enum { stack_size = 1024 * 2 };
 _Static_assert(stack_size > 1024, "too small");
 _Static_assert(stack_size % 8 == 0, "not aligned");
 
