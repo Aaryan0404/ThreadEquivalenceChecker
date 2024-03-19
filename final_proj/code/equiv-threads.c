@@ -55,18 +55,18 @@ eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
         printk("popped thread %d\n", th->tid);
         eq_th_t * old_thread = th;
         th = eq_pop(&equiv_runq);
-        printk("#1 pushing tid %d\n", old_thread->tid);
-        eq_push(&temp_equiv_runq, old_thread);
+        printk("#1 append tid %d\n", old_thread->tid);
+        eq_append(&equiv_runq, old_thread);
         if(th->tid == first_tid) {
             panic("specified tid %d is not in the queue\n", tid);
         }
     }
-    while(temp_equiv_runq.head) {
-        //printk("pushing thread %d\n", th->tid);
-        eq_th_t * temp_th = eq_pop(&temp_equiv_runq);
-        printk("#2 pushing tid %d\n", temp_th->tid);
-        eq_push(&equiv_runq, temp_th);
-    }
+    // while(temp_equiv_runq.head) {
+    //     //printk("pushing thread %d\n", th->tid);
+    //     eq_th_t * temp_th = eq_pop(&temp_equiv_runq);
+    //     printk("#2 pushing tid %d\n", temp_th->tid);
+    //     eq_push(&equiv_runq, temp_th);
+    // }
     return th;
 }
 
@@ -90,7 +90,7 @@ void equiv_schedule(void)
     if(ctx_switch_idx < num_context_switches) {
         printk("ctx_switch_idx: %d\n", ctx_switch_idx);
         printk("#3 pushing tid %d\n", cur_thread->tid);
-        eq_push(&equiv_runq, cur_thread);
+        // eq_append(&equiv_runq, cur_thread);
         th = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
     }
     else{
@@ -282,7 +282,7 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
 
     let regs = s->regs->regs;
     uint32_t pc = regs[15];
-    output("tid=%d: pc=%x, cnt=%d\n", th->tid, pc, th->inst_cnt);
+    // output("tid=%d: pc=%x, cnt=%d\n", th->tid, pc, th->inst_cnt);
 
     th->reg_hash = fast_hash_inc32(&th->regs, sizeof th->regs, th->reg_hash);
 
