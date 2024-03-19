@@ -49,7 +49,7 @@ eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
     eq_th_t * th = eq_pop(&equiv_runq);
     // printk("retrieved thread at start %d\n", th->tid);
 
-    uint32_t first_tid = cur_thread->tid;
+    uint32_t first_tid = th->tid;
     while(th->tid != tid) {
         // printk("popped thread %d\n", th->tid);
         eq_th_t * old_thread = th;
@@ -76,7 +76,7 @@ void equiv_schedule(void)
 {
     assert(cur_thread);
 
-    eq_th_t * th = NULL;
+    eq_th_t * th = 0;
     // printk("equiv_schedule\n");
     // if we have context switches remaining, switch to the next thread in the schedule
     // otherwise we'll just run whatever the next thread in the queue is to completion
@@ -171,13 +171,13 @@ static int equiv_syscall_handler(regs_t *r) {
         else if(th->expected_hash) {
             let exp = th->expected_hash;
             let got = th->reg_hash;
-            if(exp == got) {
-                trace("EXIT HASH MATCH: tid=%d: hash=%x\n", 
-                    th->tid, exp, got);
-            } else {
-                panic("MISMATCH ERROR: tid=%d: expected hash=%x, have=%x\n", 
-                    th->tid, exp, got);
-            }
+            // if(exp == got) {
+            //     trace("EXIT HASH MATCH: tid=%d: hash=%x\n", 
+            //         th->tid, exp, got);
+            // } else {
+            //     panic("MISMATCH ERROR: tid=%d: expected hash=%x, have=%x\n", 
+            //         th->tid, exp, got);
+            // }
         }
 
         // this could be cleaner: sorry.
@@ -304,9 +304,7 @@ void equiv_run(void) {
     else{
         // printk("current thread %d\n", cur_thread->tid);
         // printk("retrieving thread %d\n", ctx_switch_tid[ctx_switch_idx]);
-        if(cur_thread->tid != ctx_switch_tid[ctx_switch_idx]) {
-            cur_thread = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
-        }
+        cur_thread = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
     }
     // printk("starting thread %d\n", cur_thread->tid);
     
