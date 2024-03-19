@@ -24,7 +24,7 @@ static uint32_t* ctx_switch_instr_num;
 // an array of the thread ids at which we will context switch
 static uint32_t* ctx_switch_tid;
 // the current context switch we're on (aka the current idx of arrays)
-static size_t ctx_switch_idx = 0;
+static int ctx_switch_idx = -1;
 // the total number of context switches
 static size_t num_context_switches = 0;
 
@@ -114,6 +114,12 @@ void set_ctx_switches(uint32_t* tid, uint32_t* n, uint32_t num_context_switches)
     ctx_switch_tid = tid;
     ctx_switch_idx = 0;
     num_context_switches = num_context_switches;
+}
+
+void disable_ctx_switch(){
+    ctx_switch_instr_num = NULL;
+    ctx_switch_tid = NULL;
+    ctx_switch_idx = -1;
 }
 
 // in staff-start.S
@@ -263,7 +269,10 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
     gcc_mb();
     // if we reach the instruction on the tid specified in the schedule, context switch
     // equiv_schedule will look at the array to figure out the next thread in the schedule, and switch to that
-    if (th->tid == ctx_switch_tid[ctx_switch_idx] && th->inst_cnt == ctx_switch_instr_num[ctx_switch_idx]) {
+    if(ctx_switch_idx < 0){
+        equiv_schedule();
+    }
+    else if (th->tid == ctx_switch_tid[ctx_switch_idx] && th->inst_cnt == ctx_switch_instr_num[ctx_switch_idx]) {
         ctx_switch_idx++;
         equiv_schedule();
     }
@@ -281,7 +290,13 @@ void equiv_run(void) {
     //         panic("specified ctx_switch_tid %d is not in the queue\n", ctx_switch_tid);
     //     }
     // }
-    cur_thread = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
+    if(ctx_switch_idx < 0) {
+        cur_thread = eq_pop(&equiv_runq);
+    }
+    else{
+        cur_thread = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
+    }
+    
     if(!cur_thread)
         panic("empty run queue?\n");
 
