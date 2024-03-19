@@ -62,7 +62,7 @@ void find_good_hashes(function_exec* executables, size_t num_funcs, int **itl, s
     }
 }
 uint32_t convert_funcid_to_tid(uint32_t func_id, uint32_t last_tid){
-    return func_id + last_tid + 1;
+    return func_id + last_tid;
 }
 
 // void interleave(int *counts, int *limits, char *result, int *count, int n, int total_chars, int switches, int ncs, int level, char lastChar) {
