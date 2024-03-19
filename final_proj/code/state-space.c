@@ -27,6 +27,46 @@ APPLICATIONS:
 // speed: run interleaving after generating each permutation
 // memory: use equiv_refresh so we only have n_funcs threads
 
+#define HASH_TABLE_SIZE 1000 // Adjust based on expected number of unique combinations
+
+typedef struct {
+    uint32_t *tids;
+    uint32_t *instr_nums;
+    int ncs;
+} HashEntry;
+
+HashEntry hashTable[HASH_TABLE_SIZE];
+
+unsigned int hashFunction(uint32_t *tids, uint32_t *instr_nums, int ncs) {
+    unsigned int hash = 0;
+    for (int i = 0; i < ncs; i++) {
+        hash = (hash * 31) + tids[i] + instr_nums[i];
+    }
+    return hash % HASH_TABLE_SIZE;
+}
+
+int checkAndAddToHashTable(uint32_t *tids, uint32_t *instr_nums, int ncs) {
+    unsigned int hash = hashFunction(tids, instr_nums, ncs);
+    if (hashTable[hash].tids != NULL) {
+        // Check for collision and equality
+        for (int i = 0; i < ncs; i++) {
+            if (hashTable[hash].tids[i] != tids[i] || hashTable[hash].instr_nums[i] != instr_nums[i]) {
+                return 0; // Collision or not equal, skip this combination
+            }
+        }
+        return 1; // Combination already exists
+    } else {
+        // Add new combination to hash table
+        hashTable[hash].tids = kmalloc(ncs * sizeof(uint32_t));
+        hashTable[hash].instr_nums = kmalloc(ncs * sizeof(uint32_t));
+        for (int i = 0; i < ncs; i++) {
+            hashTable[hash].tids[i] = tids[i];
+            hashTable[hash].instr_nums[i] = instr_nums[i];
+        }
+        return 1; // New combination added
+    }
+}
+
 // USER CODE
 int* global_var;
 int* global_var2;
@@ -90,6 +130,12 @@ void interleave(int *counts, int *limits, int *result, int *count, int n, int to
             printk("\n");
         }
         (*count)++;
+        return;
+    }
+
+    int remaining_switches = ncs - switches;
+    int remaining_slots = total_chars - level;
+    if (remaining_switches > remaining_slots) {
         return;
     }
 
@@ -198,6 +244,10 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
 
         for (int i = 0; i < ncs; i++) {
             tids[sched_idx][i] = convert_funcid_to_tid(tids[sched_idx][i], last_tid);
+        }
+
+        if (!checkAndAddToHashTable(tids[sched_idx], instr_nums[sched_idx], ncs)) {
+            continue; // Skip this combination
         }
 
         for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
