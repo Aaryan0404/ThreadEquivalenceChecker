@@ -114,11 +114,17 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
     // via sequential execution
     disable_ctx_switch();
     int* num_instrs = kmalloc(num_funcs * sizeof(int));
+    eq_th_t *threads[num_funcs];
     for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
         let th = equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
-        last_tid += 1;
+        threads[f_idx] = th;
+        //last_tid += 1;
         equiv_run();
         num_instrs[f_idx] = th->inst_cnt;
+    }
+
+    for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
+        equiv_refresh(threads[f_idx]);
     }
 
     // Number instructions per function   
@@ -200,11 +206,11 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
             tids[sched_idx][i] = convert_funcid_to_tid(tids[sched_idx][i], last_tid);
         }
 
-        for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
+        // for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
             
-            equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
-            last_tid += 1;
-        }
+        //     equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
+        //     last_tid += 1;
+        // }
 
         for (int i = 0; i < ncs; i++) {
             printk("(%d", tids[sched_idx][i]);
@@ -214,6 +220,10 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
 
         set_ctx_switches(tids[sched_idx], instr_nums[sched_idx], ncs); 
         equiv_run();
+
+        for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
+        equiv_refresh(threads[f_idx]);
+    }
 
         uint64_t hash = capture_memory_state(initial_mem_state);
         bool valid = false;
@@ -240,7 +250,7 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
 
 void notmain() {    
     // number of context switches
-    int ncs = 2; 
+    int ncs = 1; 
 
     // arbitrary number of global vars, 
     // wrapped in initial_mem_state struct

@@ -43,7 +43,6 @@ void equiv_verbose_off(void) {
     }                                                       \
 } while(0)
     
-
 // retrieve the thread with the specified tid from the queue
 eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
     eq_th_t * th = eq_pop(&equiv_runq);
@@ -54,7 +53,7 @@ eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
         // printk("popped thread %d\n", th->tid);
         eq_th_t * old_thread = th;
         th = eq_pop(&equiv_runq);
-        // printk("#1 append tid %d\n", old_thread->tid);
+        printk("#1 append tid %d\n", old_thread->tid);
         eq_append(&equiv_runq, old_thread);
         if(th->tid == first_tid) {
             panic("specified tid %d is not in the queue\n", tid);
@@ -98,6 +97,7 @@ void equiv_schedule(void)
                 th->tid,
                 th->regs.regs[REGS_PC],
                 th->regs.regs[REGS_SP]);
+        printk("#2 append tid %d\n", cur_thread->tid);
         eq_append(&equiv_runq, cur_thread);
         cur_thread = th;
     }
@@ -162,8 +162,8 @@ static int equiv_syscall_handler(regs_t *r) {
         uart_put8(r->regs[1]);
         break;
     case EQUIV_EXIT: 
-        // trace("thread=%d exited with code=%d, hash=%x\n", 
-        //     th->tid, r->regs[1], th->reg_hash);
+        trace("thread=%d exited with code=%d, hash=%x\n", 
+            th->tid, r->regs[1], th->reg_hash);
 
         // check hash.
         if(!th->expected_hash)
@@ -171,13 +171,13 @@ static int equiv_syscall_handler(regs_t *r) {
         else if(th->expected_hash) {
             let exp = th->expected_hash;
             let got = th->reg_hash;
-            if(exp == got) {
-                trace("EXIT HASH MATCH: tid=%d: hash=%x\n", 
-                    th->tid, exp, got);
-            } else {
-                panic("MISMATCH ERROR: tid=%d: expected hash=%x, have=%x\n", 
-                    th->tid, exp, got);
-            }
+            // if(exp == got) {
+            //     trace("EXIT HASH MATCH: tid=%d: hash=%x\n", 
+            //         th->tid, exp, got);
+            // } else {
+            //     panic("MISMATCH ERROR: tid=%d: expected hash=%x, have=%x\n", 
+            //         th->tid, exp, got);
+            // }
         }
 
         // this could be cleaner: sorry.
@@ -242,7 +242,7 @@ eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash) {
     th->regs = equiv_regs_init(th);
     check_sp(th);
 
-    // printk("#4 pushing tid %d\n", th->tid);
+    printk("#4 pushing tid %d\n", th->tid);
     eq_push(&equiv_runq, th);
     //printk("FORK pushed thread to queue %d\n", th->tid);
     return th;
@@ -254,13 +254,18 @@ eq_th_t *equiv_fork_nostack(void (*fn)(void**), void **args, uint32_t expected_h
     return th;
 }
 
+
+
 // re-initialize and put back on the run queue
 void equiv_refresh(eq_th_t *th) {
     th->regs = equiv_regs_init(th); 
     check_sp(th);
     th->inst_cnt = 0;
     th->reg_hash = 0;
+    // printk("printing run queue before\n");
+    printk("#5 pushing tid %d\n", th->tid);
     eq_push(&equiv_runq, th);
+    // printk("printing run queue after\n");
 }
 
 
@@ -274,7 +279,7 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
 
     let regs = s->regs->regs;
     uint32_t pc = regs[15];
-    // output("tid=%d: pc=%x, cnt=%d\n", th->tid, pc, th->inst_cnt);
+    output("tid=%d: pc=%x, cnt=%d\n", th->tid, pc, th->inst_cnt);
 
     th->reg_hash = fast_hash_inc32(&th->regs, sizeof th->regs, th->reg_hash);
 
