@@ -5,8 +5,8 @@
 #include "permutations.h"
 #include "memory.h"
 
-#define NUM_VARS 2
-#define NUM_FUNCS 2
+#define NUM_VARS 3
+#define NUM_FUNCS 3
 
 /*
 POTENTIAL TODOS:
@@ -26,6 +26,7 @@ APPLICATIONS:
 // USER CODE
 int* global_var;
 int* global_var2;
+int* global_var3;
 
 // multiply by 4 and add 1
 void funcMA(void **arg) {
@@ -47,6 +48,15 @@ void funcMS(void **arg) {
     int b = *global_var;
     b += 1;
     *global_var = b;
+}
+
+// independent third function
+void funcIndep(void **arg) {
+    int a = *global_var3; 
+    a *= 2;
+    a += 1;
+
+    *global_var3 = a;
 }
 
 // finds valid hashes for each permutation
@@ -233,12 +243,14 @@ void notmain() {
     // allocate and initialize global vars
     global_var = kmalloc(sizeof(int));
     global_var2 = kmalloc(sizeof(int));
+    global_var3 = kmalloc(sizeof(int));
     *global_var = 5;
     *global_var2 = 10;
+    *global_var3 = 15;
     
     // convert global vars to an array of pointers
-    int *global_vars[NUM_VARS] = {global_var, global_var2};
-    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int)};
+    int *global_vars[NUM_VARS] = {global_var, global_var2, global_var3};
+    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int), sizeof(int)};
 
     memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes}; 
     initialize_memory_state(&initial_mem_state);
@@ -270,6 +282,10 @@ void notmain() {
     executables[1].func_addr = (func_ptr)funcMS;
     executables[1].num_vars = 0; 
     executables[1].var_list = NULL;
+
+    executables[2].func_addr = (func_ptr)funcIndep;
+    executables[2].num_vars = 0;
+    executables[2].var_list = NULL;
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
     // on a single thread, run each interleaving
