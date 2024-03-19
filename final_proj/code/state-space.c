@@ -189,11 +189,7 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
     for (int sched_idx = 0; sched_idx < count; sched_idx++) {
         reset_memory_state(initial_mem_state);
         
-        for (int i = 0; i < ncs; i++) {
-            printk("(%d", tids[sched_idx][i]);
-            printk(", %d) ", instr_nums[sched_idx][i]);
-        }
-        printk("\n");
+        
 
         for (int i = 0; i < ncs; i++) {
             tids[sched_idx][i] = convert_funcid_to_tid(tids[sched_idx][i], last_tid);
@@ -204,6 +200,12 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
             equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
             last_tid += 1;
         }
+
+        for (int i = 0; i < ncs; i++) {
+            printk("(%d", tids[sched_idx][i]);
+            printk(", %d) ", instr_nums[sched_idx][i]);
+        }
+        printk("\n");
 
         set_ctx_switches(tids[sched_idx], instr_nums[sched_idx], ncs); 
         equiv_run();
