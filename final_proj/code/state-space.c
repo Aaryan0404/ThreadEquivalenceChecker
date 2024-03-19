@@ -203,19 +203,7 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
 
     for (int sched_idx = 0; sched_idx < count; sched_idx++) {
         reset_memory_state(initial_mem_state);
-        eq_th_t *threads[num_funcs];
-
-        
-
-        for (int i = 0; i < ncs; i++) {
-            tids[sched_idx][i] = convert_funcid_to_tid(tids[sched_idx][i], last_tid);
-        }
-
-        for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
-            
-            threads[f_idx] = equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
-            last_tid += 1;
-        }
+        //eq_th_t *threads[num_funcs];
 
         
         for (int i = 0; i < ncs; i++) {
@@ -223,30 +211,42 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
             printk(", %d) ", instr_nums[sched_idx][i]);
         }
         printk("\n");
-        printk("ncs: %d\n", ncs);
+
+        for (int i = 0; i < ncs; i++) {
+            tids[sched_idx][i] = convert_funcid_to_tid(tids[sched_idx][i], last_tid);
+        }
+
+        for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
+            
+            equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
+            last_tid += 1;
+        }
+
+        
+        
         set_ctx_switches(tids[sched_idx], instr_nums[sched_idx], ncs); 
-        printk("about ot equiv run\n");
         equiv_run();
-        printk("threads[0]: %d\n", threads[0]);
 
-        // uint64_t hash = capture_memory_state(initial_mem_state);
-        // bool valid = false;
-        // for (size_t j = 0; j < num_perms; j++) {
-        //     if (hash == valid_hashes[j]) {
-        //         valid = true;
-        //         break;
-        //     }
-        // }
+        uint64_t hash = capture_memory_state(initial_mem_state);
+        bool valid = false;
+        for (size_t j = 0; j < num_perms; j++) {
+            if (hash == valid_hashes[j]) {
+                valid = true;
+                break;
+            }
+        }
 
-        // if (valid) {
-        //     for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
-        //         printk("valid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
-        //     }
-        // } else {
-        //     for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
-        //         printk("invalid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
-        //     }
-        // }
+        if (valid) {
+            for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
+                printk("valid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
+            }
+        } else {
+            for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
+                printk("invalid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
+            }
+        }
+        printk("\n");
+        printk("\n");
     }
     //printk("\n");
 }

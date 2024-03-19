@@ -48,7 +48,6 @@ void equiv_verbose_off(void) {
 eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
     eq_th_t *  th = eq_pop(&equiv_runq);
     uint32_t first_tid = cur_thread->tid;
-    printk("cur_thread tid: %d\n", first_tid);
     while(th->tid != tid) {
         eq_th_t * old_thread = th;
         th = eq_pop(&equiv_runq);
@@ -76,19 +75,13 @@ void equiv_schedule(void)
     eq_th_t * th = NULL;
     // if we have context switches remaining, switch to the next thread in the schedule
     // otherwise we'll just run whatever the next thread in the queue is to completion
-    printk("EQUIV SCHEDULE\n");
-    printk("ctx_switch_idx: %d\n", ctx_switch_idx);
-    printk("num_context_switches: %d\n", num_context_switches);
     if(ctx_switch_idx < num_context_switches) {
-        printk("attempting to retrieve tid: %d\n", ctx_switch_tid[ctx_switch_idx - 1]);
         th = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx - 1]);
         // eq_th_t *th = eq_pop(&equiv_runq);
     }
     else{
-        printk("popping next thing on queue\n");
         th = eq_pop(&equiv_runq);
     }
-    printk("retrieved tid %d\n", th->tid);
     
     if(th) {
         if(th->verbose_p)
@@ -182,7 +175,7 @@ static int equiv_syscall_handler(regs_t *r) {
 
         // if no more threads we are done.
         if(!th) {
-            trace("done with all threads\n");
+            //trace("done with all threads\n");
             switchto(&start_regs);
         }
         // otherwise do the next one.
@@ -215,7 +208,6 @@ static inline regs_t equiv_regs_init(eq_th_t *p) {
 
 // fork <fn(arg)> as a pre-emptive thread.
 eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash) {
-    printk("EQUIV FORK\n");
     eq_th_t *th = kmalloc_aligned(stack_size, 8);
 
     assert((uint32_t)th%8==0);
@@ -265,7 +257,7 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
 
     let regs = s->regs->regs;
     uint32_t pc = regs[15];
-    output("tid=%d: pc=%x, cnt=%d\n", th->tid, pc, th->inst_cnt);
+    //output("tid=%d: pc=%x, cnt=%d\n", th->tid, pc, th->inst_cnt);
 
     th->reg_hash = fast_hash_inc32(&th->regs, sizeof th->regs, th->reg_hash);
 
@@ -298,17 +290,12 @@ void equiv_run(void) {
     //         panic("specified ctx_switch_tid %d is not in the queue\n", ctx_switch_tid);
     //     }
     // }
-    printk("EQUIV RUN\n");
-    printk("ctx_switch_tid: %d\n", ctx_switch_tid);
     if(ctx_switch_idx < 0) {
-        printk("popping next thing on queue\n");
         cur_thread = eq_pop(&equiv_runq);
     }
     else{
-        printk("attempting to retrieve tid: %d\n", ctx_switch_tid[ctx_switch_idx]);
         cur_thread = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
     }
-    printk("retrieved tid %d\n", cur_thread->tid);
     
     if(!cur_thread)
         panic("empty run queue?\n");
@@ -318,7 +305,7 @@ void equiv_run(void) {
     mismatch_pc_set(cur_thread->regs.regs[15]);
     switchto_cswitch(&start_regs, &cur_thread->regs);
     mismatch_off();
-    trace("done, returning\n");
+    //trace("done, returning\n");
 }
 
 // one time initialazation
