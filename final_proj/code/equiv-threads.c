@@ -47,14 +47,14 @@ void equiv_verbose_off(void) {
 // retrieve the thread with the specified tid from the queue
 eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
     eq_th_t * th = eq_pop(&equiv_runq);
-    printk("retrieved thread at start %d\n", th->tid);
+    // printk("retrieved thread at start %d\n", th->tid);
 
     uint32_t first_tid = cur_thread->tid;
     while(th->tid != tid) {
-        printk("popped thread %d\n", th->tid);
+        // printk("popped thread %d\n", th->tid);
         eq_th_t * old_thread = th;
         th = eq_pop(&equiv_runq);
-        printk("#1 append tid %d\n", old_thread->tid);
+        // printk("#1 append tid %d\n", old_thread->tid);
         eq_append(&equiv_runq, old_thread);
         if(th->tid == first_tid) {
             panic("specified tid %d is not in the queue\n", tid);
@@ -81,8 +81,8 @@ void equiv_schedule(void)
     // if we have context switches remaining, switch to the next thread in the schedule
     // otherwise we'll just run whatever the next thread in the queue is to completion
     if(ctx_switch_idx < num_context_switches) {
-        printk("ctx_switch_idx: %d\n", ctx_switch_idx);
-        printk("#3 pushing tid %d\n", cur_thread->tid);
+        // printk("ctx_switch_idx: %d\n", ctx_switch_idx);
+        // printk("#3 pushing tid %d\n", cur_thread->tid);
         // eq_append(&equiv_runq, cur_thread);
         th = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
     }
@@ -162,8 +162,8 @@ static int equiv_syscall_handler(regs_t *r) {
         uart_put8(r->regs[1]);
         break;
     case EQUIV_EXIT: 
-        trace("thread=%d exited with code=%d, hash=%x\n", 
-            th->tid, r->regs[1], th->reg_hash);
+        // trace("thread=%d exited with code=%d, hash=%x\n", 
+        //     th->tid, r->regs[1], th->reg_hash);
 
         // check hash.
         if(!th->expected_hash)
@@ -182,7 +182,7 @@ static int equiv_syscall_handler(regs_t *r) {
 
         // this could be cleaner: sorry.
         eq_th_t *th = eq_pop(&equiv_runq);
-        printk("thread %d next\n", th->tid);
+        // printk("thread %d next\n", th->tid);
 
         // if no more threads we are done.
         if(!th) {
@@ -242,7 +242,7 @@ eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash) {
     th->regs = equiv_regs_init(th);
     check_sp(th);
 
-    printk("#4 pushing tid %d\n", th->tid);
+    // printk("#4 pushing tid %d\n", th->tid);
     eq_push(&equiv_runq, th);
     //printk("FORK pushed thread to queue %d\n", th->tid);
     return th;
@@ -260,7 +260,6 @@ void equiv_refresh(eq_th_t *th) {
     check_sp(th);
     th->inst_cnt = 0;
     th->reg_hash = 0;
-    printk("#5 pushing tid %d\n", th->tid);
     eq_push(&equiv_runq, th);
 }
 
@@ -298,18 +297,18 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
 
 // run all the threads.
 void equiv_run(void) {
-    printk("starting equiv_run\n");
+    // printk("starting equiv_run\n");
     if(ctx_switch_idx < 0) {
         cur_thread = eq_pop(&equiv_runq);
     }
     else{
-        printk("current thread %d\n", cur_thread->tid);
-        printk("retrieving thread %d\n", ctx_switch_tid[ctx_switch_idx]);
+        // printk("current thread %d\n", cur_thread->tid);
+        // printk("retrieving thread %d\n", ctx_switch_tid[ctx_switch_idx]);
         if(cur_thread->tid != ctx_switch_tid[ctx_switch_idx]) {
             cur_thread = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
         }
     }
-    printk("starting thread %d\n", cur_thread->tid);
+    // printk("starting thread %d\n", cur_thread->tid);
     
     if(!cur_thread)
         panic("empty run queue?\n");
