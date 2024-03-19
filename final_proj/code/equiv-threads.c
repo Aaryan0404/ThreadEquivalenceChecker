@@ -47,12 +47,12 @@ void equiv_verbose_off(void) {
 // retrieve the thread with the specified tid from the queue
 eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
     eq_th_t * th = eq_pop(&equiv_runq);
-    printk("retrieved thread %d\n", th->tid);
+    printk("retrieved thread at start %d\n", th->tid);
 
     uint32_t first_tid = cur_thread->tid;
     rq_t temp_equiv_runq;
     while(th->tid != tid) {
-        // printk("popped thread %d\n", th->tid);
+        printk("popped thread %d\n", th->tid);
         eq_th_t * old_thread = th;
         th = eq_pop(&equiv_runq);
         eq_push(&temp_equiv_runq, old_thread);
@@ -61,6 +61,7 @@ eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
         }
     }
     while(temp_equiv_runq.head) {
+        printk("pushing thread %d\n", th->tid);
         eq_push(&equiv_runq, eq_pop(&temp_equiv_runq));
     }
     return th;
@@ -84,7 +85,9 @@ void equiv_schedule(void)
     // if we have context switches remaining, switch to the next thread in the schedule
     // otherwise we'll just run whatever the next thread in the queue is to completion
     if(ctx_switch_idx < num_context_switches) {
-        th = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx - 1]);
+        printk("ctx_switch_idx: %d\n", ctx_switch_idx);
+        eq_push(&equiv_runq, cur_thread);
+        th = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
     }
     else{
         th = eq_pop(&equiv_runq);
@@ -159,8 +162,8 @@ static int equiv_syscall_handler(regs_t *r) {
         uart_put8(r->regs[1]);
         break;
     case EQUIV_EXIT: 
-        // trace("thread=%d exited with code=%d, hash=%x\n", 
-        //     th->tid, r->regs[1], th->reg_hash);
+        trace("thread=%d exited with code=%d, hash=%x\n", 
+            th->tid, r->regs[1], th->reg_hash);
 
         // check hash.
         if(!th->expected_hash)
