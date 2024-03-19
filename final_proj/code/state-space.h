@@ -11,3 +11,4 @@ typedef struct {
     int num_instrs; 
 } schedule_info; 
 
+uint32_t convert_funcid_to_tid(uint32_t func_id, uint32_t last_tid);

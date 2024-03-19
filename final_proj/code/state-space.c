@@ -61,77 +61,197 @@ void find_good_hashes(function_exec* executables, size_t num_funcs, int **itl, s
         valid_hashes[i] = hash;
     }
 }
+uint32_t convert_funcid_to_tid(uint32_t func_id, uint32_t last_tid){
+    return func_id + last_tid + 1;
+}
 
-// runs each interleaving for a given number of instructions
-void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes) {
-    equiv_init();
-    uint32_t max_instrs = 0;
+// void interleave(int *counts, int *limits, char *result, int *count, int n, int total_chars, int switches, int ncs, int level, char lastChar) {
+//     if (level == total_chars && switches == ncs) {
+//         result[level] = '\0';
+//         printk("%s\n", result);
+//         (*count)++;
+//         return;
+//     }
 
-    uint32_t last_tid = 0; 
-    for (size_t k = 0; k < num_funcs; k++) {
-        for (size_t i = 1; i <= 16384; i++) {
-            // halt early once we reach a sequential ordering
-            if(max_instrs != 0 && i > max_instrs){
-                last_tid = 1 + (i - 1) * (num_funcs) + last_tid;
-                break;
+//     for (int i = 0; i < n; i++) {
+//         if (counts[i] < limits[i] && ((i + '0') == lastChar || switches < ncs)) {
+//             //int newSwitches = ((i + '0') != lastChar) ? switches + 1 : switches;
+//             int newSwitches = switches;
+//             if((i + '0') != lastChar) {
+//                 newSwitches = switches + 1;
+//             }
+//             result[level] = i + '0';
+//             counts[i]++;
+//             interleave(counts, limits, result, count, n, total_chars, newSwitches, ncs, level + 1, (i + '0'));
+//             counts[i]--;
+//         }
+//     }
+// }
+
+void interleave(int *counts, int *limits, int *result, int *count, int n, int total_chars, int switches, int ncs, int level, int lastInt, int **interleave_output) {
+    if (level == total_chars && switches == ncs) {
+        if (interleave_output != NULL) {
+            for (int i = 0; i < level; i++) {
+                interleave_output[*count][i] = result[i];
+                printk("%d", result[i]);
             }
+            printk("\n");
+        }
+        (*count)++;
+        return;
+    }
 
-            reset_memory_state(initial_mem_state);
-            eq_th_t *threads[num_funcs];
-            for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
-                threads[f_idx] = equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
-            }
-
-            // thread tid will run for i instructions, and then context switch.
-            uint32_t tid = 1 + (i - 1) * (num_funcs) + last_tid; 
-            // uint32_t tid = 2 + (i - 1) * (num_funcs); // B
-            // uint32_t tid = (k + 1) + (i - 1) * (num_funcs); // C
-
-            // int and int
-            // when curr_thread tid gets to instruction i, switch to the other thread in queue
-
-            // int[] and int[]
-            // when tid[i] gets to instruction[i], switch to other thread in queue
-            // [A]
-            // [1]
-
-            // [A, B]
-            // [1, 1]
-            set_ctx_switch_tid(tid);     // make this array
-            set_ctx_switch_instr_num(i); // make this array
-
-            equiv_run();
-
-            // calculate max instructions used for each thread
-            for (size_t j = 0; j < num_funcs; j++) {
-                if(threads[j]->inst_cnt > max_instrs){
-                    max_instrs = threads[j]->inst_cnt;
-                }
-            }
-
-            uint64_t hash = capture_memory_state(initial_mem_state);
-            bool valid = false;
-            for (size_t j = 0; j < num_perms; j++) {
-                if (hash == valid_hashes[j]) {
-                    valid = true;
-                    break;
-                }
-            }
-
-            if (valid) {
-                for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
-                    printk("valid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
-                }
-            } else {
-                for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
-                    printk("invalid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
-                }
-            }
+    for (int i = 0; i < n; i++) {
+        if (counts[i] < limits[i] && (i == lastInt || switches < ncs)) {
+            int newSwitches = (i != lastInt) ? switches + 1 : switches;
+            result[level] = i;
+            counts[i]++;
+            interleave(counts, limits, result, count, n, total_chars, newSwitches, ncs, level + 1, i, interleave_output);
+            counts[i]--;
         }
     }
 }
 
-void notmain() {
+// runs each interleaving for a given number of instructions
+void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs) {
+    equiv_init();
+    uint32_t max_instrs = 0;
+    uint32_t last_tid = 0; 
+
+    // TODO: calculate num instrs for each function
+    // via sequential execution
+    int* num_instrs = kmalloc(num_funcs * sizeof(int));
+    for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
+        let th = equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
+        last_tid += 1;
+        equiv_run();
+        num_instrs[f_idx] = th->inst_cnt;
+    }
+    // Number instructions per function 
+    // int num_instrs[] = {2, 2, 2};
+
+    
+    int total_instrs = 0;
+    for (int i = 0; i < num_funcs; i++) {
+        total_instrs += num_instrs[i];
+    }
+
+    int result[total_instrs]; // Result array to store one interleave
+    int counts[num_funcs]; // Array to keep track of the counts of each character
+    for (int i = 0; i < num_funcs; i++) {
+        counts[i] = 0; // Initialize counts as 0
+    }
+
+    int count = 0; // Counter for the number of interleavings
+    interleave(counts, num_instrs, result, &count, num_funcs, total_instrs, 0, ncs + num_funcs, 0, -1, NULL); // First call to get count
+    
+    // arr is count * total_instrs, will store all schedules
+    int **all_schedules = (int **)kmalloc(count * sizeof(int *));
+    for (int i = 0; i < count; i++) {
+        all_schedules[i] = (int *)kmalloc(total_instrs * sizeof(int));
+    }
+
+    count = 0; // Reset count for the second call
+    interleave(counts, num_instrs, result, &count, num_funcs, total_instrs, 0, ncs + num_funcs, 0, -1, all_schedules); // Second call to fill the array
+
+    // create an array of instruction indices (num_interleavings * num_funcs)
+    int **instr_idx = (int **)kmalloc(count * sizeof(int *));
+    for (int i = 0; i < count; i++) {
+        instr_idx[i] = (int *)kmalloc(total_instrs * sizeof(int));
+    }
+
+    // fills in the instruction indices
+    for (int i = 0; i < count; i++) {
+
+        // one bin per function, each bin has a counter
+        int* instr_counter = kmalloc(num_funcs * sizeof(int));
+        for (int j = 0; j < num_funcs; j++) {
+            instr_counter[j] = 0;
+        }
+
+        // fill in the instruction indices by func
+        for (int j = 0; j < total_instrs; j++) {
+            instr_idx[i][j] = instr_counter[all_schedules[i][j]];
+            instr_counter[all_schedules[i][j]] += 1;
+        }
+    }
+
+    // create an array of tids and instruction numbers
+    uint32_t **tids       = (uint32_t **)kmalloc(count * sizeof(uint32_t *));
+    uint32_t **instr_nums = (uint32_t **)kmalloc(count * sizeof(uint32_t *));
+    for (int i = 0; i < count; i++) {
+        tids[i] = (uint32_t *)kmalloc(ncs * sizeof(uint32_t));
+        instr_nums[i] = (uint32_t *)kmalloc(ncs * sizeof(uint32_t));
+    }
+
+    // fill in the tids and instruction numbers
+    for (int i = 0; i < count; i++) {
+        int* tid = all_schedules[i];
+        int* instr_num = instr_idx[i];
+
+        int ncs_idx = 0; 
+        for (int c = 0; c < total_instrs - 1; c++) {
+            if (tid[c] != tid[c + 1] && ncs_idx < ncs) {
+                tids[i][ncs_idx] = tid[c] + 1; 
+                instr_nums[i][ncs_idx] = instr_num[c] + 1;
+                ncs_idx += 1;
+            }
+        }
+    }
+
+    for (int sched_idx = 0; sched_idx < count; sched_idx++) {
+        reset_memory_state(initial_mem_state);
+        eq_th_t *threads[num_funcs];
+
+        
+
+        for (int i = 0; i < ncs; i++) {
+            tids[sched_idx][i] = convert_funcid_to_tid(tids[sched_idx][i], last_tid);
+        }
+
+        for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
+            
+            threads[f_idx] = equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
+            last_tid += 1;
+        }
+
+        
+        for (int i = 0; i < ncs; i++) {
+            printk("(%d", tids[sched_idx][i]);
+            printk(", %d) ", instr_nums[sched_idx][i]);
+        }
+        printk("\n");
+        printk("ncs: %d\n", ncs);
+        set_ctx_switches(tids[sched_idx], instr_nums[sched_idx], ncs); 
+
+        equiv_run();
+        printk("threads[0]: %d\n", threads[0]);
+
+        // uint64_t hash = capture_memory_state(initial_mem_state);
+        // bool valid = false;
+        // for (size_t j = 0; j < num_perms; j++) {
+        //     if (hash == valid_hashes[j]) {
+        //         valid = true;
+        //         break;
+        //     }
+        // }
+
+        // if (valid) {
+        //     for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
+        //         printk("valid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
+        //     }
+        // } else {
+        //     for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
+        //         printk("invalid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
+        //     }
+        // }
+    }
+    //printk("\n");
+}
+
+void notmain() {    
+    // number of context switches
+    int ncs = 1; 
 
     // arbitrary number of global vars, 
     // wrapped in initial_mem_state struct
@@ -153,9 +273,9 @@ void notmain() {
 
     // print statement that shows value of 
     // initial memory state
-    for (int i = 0; i < initial_mem_state.num_ptrs; i++) {
-        printk("initial_mem_state.ptr_list[%d]: %d\n", i, *((int *)initial_mem_state.ptr_list[i]));
-    }
+    // for (int i = 0; i < initial_mem_state.num_ptrs; i++) {
+    //     printk("initial_mem_state.ptr_list[%d]: %d\n", i, *((int *)initial_mem_state.ptr_list[i]));
+    // }
 
     // dependeing on num functions, generate
     // a 2d array of function interleavings (sequential outcomes)
@@ -200,7 +320,7 @@ void notmain() {
         // {t0, ...} to completion
     // total of 1000 schedules
 
-    run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
+    run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, ncs); 
     // do equiv init
     // launch 2 threads
         // thread 0: funcMA
