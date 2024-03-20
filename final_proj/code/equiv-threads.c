@@ -310,9 +310,8 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
     if(is_load_or_store(fault_instr)){
         th->loadstr_cnt++;
         // the data fault handler will set the domain to access, so need to disable again
-        disable_heap_domain_access();
     }
-    // output("tid=%d: pc=%x, cnt=%d, ld_strcnt=%d\n", th->tid, pc, th->inst_cnt, th->loadstr_cnt);
+    output("tid=%d: pc=%x, cnt=%d, ld_strcnt=%d\n", th->tid, pc, th->inst_cnt, th->loadstr_cnt);
     
 
     th->reg_hash = fast_hash_inc32(&th->regs, sizeof th->regs, th->reg_hash);
@@ -326,10 +325,12 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
     // if we reach the instruction on the tid specified in the schedule, context switch
     // equiv_schedule will look at the array to figure out the next thread in the schedule, and switch to that
     if(ctx_switch_idx < 0){
+        disable_heap_domain_access();
         equiv_schedule();
     }
     else if (th->tid == ctx_switch_tid[ctx_switch_idx] && th->loadstr_cnt == ctx_switch_instr_num[ctx_switch_idx]) {
         ctx_switch_idx++;
+        disable_heap_domain_access();
         equiv_schedule();
     }
 }
@@ -349,7 +350,6 @@ void equiv_run(void) {
     if(!cur_thread)
         panic("empty run queue?\n");
 
-    disable_heap_domain_access();
 
     // this is roughly the same as in mini-step.c
     mismatch_on();

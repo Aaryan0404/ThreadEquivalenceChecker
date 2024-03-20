@@ -24,7 +24,9 @@ void enable_heap_domain_access(){
 
 static void data_fault_handler(regs_t *r) {
     // renable domain
+    trace("data fault pc=%x\n", r->regs[15]);
     enable_heap_domain_access();
+    return;
     uint32_t fault_addr;
 
     // b4-44
@@ -36,7 +38,7 @@ static void data_fault_handler(regs_t *r) {
     // done with test.
 
     // print the pc
-    trace("pc=%x\n", r->regs[15]);
+    
     // get the dfsr
     uint32_t dfsr;
     asm volatile("MRC p15, 0, %0, c5, c0, 0" : "=r" (dfsr));
@@ -50,7 +52,7 @@ void init_memory_trap(){
 
     // map the heap: for lab cksums must be at 0x100000.
     //kmalloc_init_set_start((void*)OneMB, OneMB);
-    kmalloc_init();
+    // kmalloc_init();
 
     // if we are correct this will never get accessed.
     // since all valid entries are pinned.
@@ -92,7 +94,7 @@ void init_memory_trap(){
     vm_map_sec(idx, except_stack, except_stack, kern);
 
     // Q3: if you set this to ~0, what happens w.r.t. Q1?
-    // staff_domain_access_ctrl_set((DOM_client << dom_kern * 2) | (DOM_no_access << heap_dom * 2));
+    staff_domain_access_ctrl_set((DOM_client << dom_kern * 2) | (DOM_no_access << heap_dom * 2));
     enum { ASID = 1, PID = 128 };
     vm_mmu_switch(idx, PID, ASID);
 

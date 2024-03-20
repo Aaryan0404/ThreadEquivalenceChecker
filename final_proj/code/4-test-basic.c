@@ -23,7 +23,7 @@ static volatile uint32_t legal_addr;
 
 // a trivial fault handler that checks that we got the fault
 // we expected.
-static void fault_handler(regs_t *r) {
+static void data_fault_handler(regs_t *r) {
     // renable domain
     uint32_t d = ((DOM_manager) << (heap_dom*2)) | ((DOM_manager) << (dom_kern*2));
     staff_domain_access_ctrl_set(d);
@@ -201,8 +201,7 @@ void notmain(void) {
     
     // just like last lab.  setup a data abort handler.
     full_except_install(0);
-    full_except_set_data_abort(fault_handler);
-    full_except_set_prefetch(p_fault_handler);
+    full_except_set_data_abort(data_fault_handler);
 
     // the address we will write to (2MB) we know this is not mapped.
     legal_addr = OneMB; 

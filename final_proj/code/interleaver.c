@@ -141,8 +141,8 @@ void generate_schedules(int *num_instrs, size_t total_instrs, size_t num_funcs, 
 
 // runs each interleaving for a given number of instructions
 void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs) {
-    init_memory_trap();
     equiv_init();
+    init_memory_trap();
     uint32_t max_instrs = 0;
 
     // calculate num instrs for each function
