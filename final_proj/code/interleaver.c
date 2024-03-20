@@ -17,7 +17,7 @@ size_t init_threads(eq_th_t **thread_arr, function_exec* executables, int **itl,
         let th = equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
         thread_arr[f_idx] = th;
         equiv_run();
-        num_instrs[f_idx] = th->inst_cnt;
+        num_instrs[f_idx] = th->loadstr_cnt;
     }
     size_t total_instrs = 0;
     for (int i = 0; i < num_funcs; i++) {

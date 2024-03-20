@@ -116,6 +116,14 @@ enum {
     EQUIV_SWITCH = 2
 };
 
+// page A3-2
+enum {
+    LS_IMMEDIATE_OFFSET = 0b010,
+    LS_REGISTER_OFFSET = 0b011,
+    LS_MULTIPLE = 0b100,
+};
+
+// page A3-39
 
 void set_ctx_switches(uint32_t* tid, uint32_t* n, uint32_t ncs) {
     ctx_switch_instr_num = n;
@@ -259,10 +267,27 @@ void equiv_refresh(eq_th_t *th) {
     th->regs = equiv_regs_init(th); 
     check_sp(th);
     th->inst_cnt = 0;
+    th->loadstr_cnt = 0;
     th->reg_hash = 0;
     eq_push(&equiv_runq, th);
 }
 
+int is_load_or_store(uint32_t instr){
+    // if load
+    if(((instr >> 25) & 0b111) == LS_IMMEDIATE_OFFSET  || ((instr >> 25) & 0b111) == LS_MULTIPLE){
+        return 1;
+    }
+    // multiple instructions so check bit 4 too
+    if((((instr >> 25) & 0b111) == LS_REGISTER_OFFSET) && (((instr >> 4) & 0b1) == 1)){
+        return 1;
+    }
+    // many instructions so check other bits based off page A3-39
+    // based on page A3-35 this will also capture some multiply instructions but oh well
+    if(((instr >> 25 & 0b111) == 0) && (instr >> 7 & 0b1) && (instr >> 4 & 0b1)){
+        return 1;
+    }
+    return 0;
+}
 
 // just print out the pc and instruction count.
 static void equiv_hash_handler(void *data, step_fault_t *s) {
@@ -280,7 +305,12 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
 
     let regs = s->regs->regs;
     uint32_t pc = regs[15];
-    // output("tid=%d: pc=%x, cnt=%d\n", th->tid, pc, th->inst_cnt);
+    uint32_t fault_instr = GET32(s->fault_pc);
+    if(is_load_or_store(fault_instr)){
+        th->loadstr_cnt++;
+    }
+    // output("tid=%d: pc=%x, cnt=%d, ld_strcnt=%d\n", th->tid, pc, th->inst_cnt, th->loadstr_cnt);
+    
 
     th->reg_hash = fast_hash_inc32(&th->regs, sizeof th->regs, th->reg_hash);
 
@@ -295,7 +325,7 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
     if(ctx_switch_idx < 0){
         equiv_schedule();
     }
-    else if (th->tid == ctx_switch_tid[ctx_switch_idx] && th->inst_cnt == ctx_switch_instr_num[ctx_switch_idx]) {
+    else if (th->tid == ctx_switch_tid[ctx_switch_idx] && th->loadstr_cnt == ctx_switch_instr_num[ctx_switch_idx]) {
         ctx_switch_idx++;
         equiv_schedule();
     }
