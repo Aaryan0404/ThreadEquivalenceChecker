@@ -10,6 +10,7 @@
 POTENTIAL TODOS:
 1) Memory - Read/write set consistency with VM
 2) Speed - run interleaving after generating each permutation
+3) General - compile at a higher optimization (also will reduce instructions which reduces speed)
 */
 
 /*

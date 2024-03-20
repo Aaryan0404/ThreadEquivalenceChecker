@@ -182,7 +182,6 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
             }
             printk("\n");
         }
-        //continue;
 
         // load next schedule
         set_ctx_switches(tids[sched_idx], instr_nums[sched_idx], actual_ncs); 

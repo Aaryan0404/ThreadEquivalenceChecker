@@ -111,23 +111,6 @@ void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len)
 	}
 }
 
-// void sha256_update_state(SHA256_CTX *ctx, variable_state* var_states){
-//     size_t num_vars = sizeof(var_states)/sizeof(var_states[0]);
-//     size_t total_bytes = 0;
-//     for(size_t i = 0; i < num_vars; i++){
-//         total_bytes += var_states[i].num_bytes;
-//     }
-//     void* data = malloc(total_bytes);
-//     void* curr_data_pointer = data;
-//     for(size_t i = 0; i < num_vars; i++){
-//         memcpy(curr_data_pointer, var_states[i].var_addr, var_states[i].num_bytes);
-//         curr_data_pointer += var_states[i].num_bytes;
-//     }
-
-//     sha256_update(ctx, (BYTE*)data, total_bytes);
-//     free(data);
-// }
-
 void sha256_final(SHA256_CTX *ctx, BYTE hash[])
 {
 	WORD i;
