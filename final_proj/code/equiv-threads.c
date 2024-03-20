@@ -3,6 +3,7 @@
 #include "mini-step.h"
 #include "equiv-threads.h"
 #include "fast-hash32.h"
+#include "memory_trap.h"
 
 enum { stack_size = 1024 * 2 };
 _Static_assert(stack_size > 1024, "too small");
@@ -308,6 +309,8 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
     uint32_t fault_instr = GET32(s->fault_pc);
     if(is_load_or_store(fault_instr)){
         th->loadstr_cnt++;
+        // the data fault handler will set the domain to access, so need to disable again
+        disable_heap_domain_access();
     }
     // output("tid=%d: pc=%x, cnt=%d, ld_strcnt=%d\n", th->tid, pc, th->inst_cnt, th->loadstr_cnt);
     
@@ -333,7 +336,6 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
 
 // run all the threads.
 void equiv_run(void) {
-    // printk("starting equiv_run\n");
     if(ctx_switch_idx < 0) {
         cur_thread = eq_pop(&equiv_runq);
     }
@@ -346,6 +348,8 @@ void equiv_run(void) {
     
     if(!cur_thread)
         panic("empty run queue?\n");
+
+    disable_heap_domain_access();
 
     // this is roughly the same as in mini-step.c
     mismatch_on();
