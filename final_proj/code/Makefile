@@ -1,12 +1,15 @@
 
-PROGS += state-space.c
+# PROGS += state-space.c
 # PROGS += 10-equiv-check.c
+# PROGS += 1-test-basic.c
+# PROGS += 1-test-two-addr.c
+PROGS += 4-test-basic.c
 COMMON_SRC += sha256.c
 COMMON_SRC += interleaver.c
 COMMON_SRC += permutations.c
 COMMON_SRC += memory.c
 COMMON_SRC += equiv-threads.c
-COMMON_SRC += full-except-asm.S
+# COMMON_SRC += full-except-asm.S
 COMMON_SRC += switchto-asm.S
 COMMON_SRC += mini-step.c
 COMMON_SRC += staff-full-except.c 
