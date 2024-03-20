@@ -57,7 +57,7 @@ void funcIndep(void **arg) {
 
 void notmain() {    
     // number of interleaved context switches (remaining context switches will result in threads being run to completion)
-    int interleaved_ncs = 2; 
+    int interleaved_ncs = 1; 
 
     // arbitrary number of global vars, 
     // wrapped in initial_mem_state struct
@@ -112,6 +112,6 @@ void notmain() {
     executables[2].var_list = NULL;
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-    //run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs); 
-    run_interleavings_v2(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs);
+    run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs); 
+    //run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs);
 }

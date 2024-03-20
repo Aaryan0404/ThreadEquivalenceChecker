@@ -37,3 +37,12 @@ uint32_t capture_memory_state(memory_segments* memory_state){
     return trunc_hash;
 }
 
+bool verify_memory_state(memory_segments* memory_state, uint64_t *valid_hashes, size_t num_valid_hashes){
+    uint64_t hash = capture_memory_state(memory_state);
+    for(size_t i = 0; i < num_valid_hashes; i++){
+        if(hash == valid_hashes[i]){
+            return true;
+        }
+    }
+    return false;
+}

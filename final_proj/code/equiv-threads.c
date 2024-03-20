@@ -271,6 +271,12 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
     assert(th);
     th->regs = *s->regs;
     th->inst_cnt++;
+    // some counter for load/store
+
+    // to see if its a load or store you access s->pc as a volatile uint32_t
+    // compare with page A3-2 to see
+
+    // try to get register hash mapping to work
 
     let regs = s->regs->regs;
     uint32_t pc = regs[15];
