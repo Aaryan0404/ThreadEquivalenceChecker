@@ -25,6 +25,8 @@ void enable_heap_domain_access(){
 static void data_fault_handler(regs_t *r) {
     // renable domain
     trace("data fault pc=%x\n", r->regs[15]);
+    
+    // store the address that was accessed in the read/write set
     enable_heap_domain_access();
     return;
     uint32_t fault_addr;
