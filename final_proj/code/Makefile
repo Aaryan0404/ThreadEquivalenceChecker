@@ -2,6 +2,7 @@
 PROGS += state-space.c
 # PROGS += 10-equiv-check.c
 COMMON_SRC += sha256.c
+COMMON_SRC += interleaver.c
 COMMON_SRC += permutations.c
 COMMON_SRC += memory.c
 COMMON_SRC += equiv-threads.c

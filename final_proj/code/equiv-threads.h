@@ -27,6 +27,7 @@ typedef struct eq_th {
 
     // how many instructions we executed.
     uint32_t inst_cnt;
+    uint32_t loadstr_cnt;
     unsigned verbose_p;  // if you want alot of information.
 } eq_th_t;
 
