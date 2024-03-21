@@ -36,6 +36,11 @@ void equiv_verbose_off(void) {
     verbose_p = 0;
 }
 
+static int load_str_mode = 1;
+void equiv_set_load_str_mode(int mode){
+    load_str_mode = mode;
+}
+
 #undef trace
 #define trace(args...) do {                                 \
     if(verbose_p) {                                         \
@@ -306,7 +311,10 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
     let regs = s->regs->regs;
     uint32_t pc = regs[15];
     uint32_t fault_instr = GET32(s->fault_pc);
-    if(is_load_or_store(fault_instr)){
+    if(!load_str_mode){
+        th->loadstr_cnt++;
+    }
+    else if(is_load_or_store(fault_instr)){
         th->loadstr_cnt++;
     }
     // output("tid=%d: pc=%x, cnt=%d, ld_strcnt=%d\n", th->tid, pc, th->inst_cnt, th->loadstr_cnt);
