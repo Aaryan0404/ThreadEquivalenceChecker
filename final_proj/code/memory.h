@@ -18,3 +18,4 @@ void reset_memory_state(memory_segments* memory_state);
 uint32_t capture_memory_state(memory_segments* memory_state);
 void sha256_update_state(SHA256_CTX *ctx, memory_segments* memory_state);
 bool verify_memory_state(memory_segments* memory_state, uint64_t *valid_hashes, size_t num_valid_hashes);
+void print_memstate(memory_segments* memory_state);

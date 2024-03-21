@@ -28,6 +28,9 @@ size_t init_threads(eq_th_t **thread_arr, function_exec* executables, int **itl,
 
 // finds valid hashes for each permutation
 void find_good_hashes(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes) {
+    if(verbose >= 1){
+        printk("Finding valid end states\n");
+    }
     for (size_t i = 0; i < num_perms; i++) {
         reset_memory_state(initial_mem_state);
         for (size_t j = 0; j < num_funcs; j++) {
@@ -36,6 +39,20 @@ void find_good_hashes(function_exec* executables, size_t num_funcs, int **itl, s
         }
         uint64_t hash = capture_memory_state(initial_mem_state);
         valid_hashes[i] = hash;
+        if(verbose >= 1){
+            int hash_already_seen = 0;
+            for(size_t k = 0; k < i; k++){
+                if(valid_hashes[k] == hash){
+                    hash_already_seen = 1;
+                    break;
+                }
+            }
+            if(!hash_already_seen){
+                printk("ground truth valid state\n");
+                print_memstate(initial_mem_state);
+                printk("\n");
+            }
+        }
     }
 }
 
@@ -157,6 +174,10 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
     
     // calculate number of schedules
     uint32_t count = get_num_schedules(num_instrs, total_instrs, num_funcs, ncs);
+    if(verbose >= 1){
+        printk("Doing %d interleaved context switches\n", ncs);
+        printk("Generated %d schedules\n\n", count);
+    }
 
     int actual_ncs = ncs + num_funcs - 1;
 
@@ -177,11 +198,11 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
             tids[sched_idx][i] = tids[sched_idx][i];
         }
         
-        if(verbose >= 2){
+        if(verbose >= 1){
             printk("schedule %d: ", sched_idx);
             for (int i = 0; i < actual_ncs; i++) {
-                printk("(%d", tids[sched_idx][i] - 1);
-                printk(", %d) ", instr_nums[sched_idx][i]);
+                printk("(tid: %d", tids[sched_idx][i] - 1);
+                printk(", instr #: %d) ", instr_nums[sched_idx][i]);
             }
             printk("\n");
         }
@@ -201,17 +222,15 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
         }
         if (valid) {
             if(verbose >= 2){
-                for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
-                    printk("valid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
-                }
+                printk("valid state:\n");
+                print_memstate(initial_mem_state);
                 printk("\n");
                 printk("\n");
             }
         } else {
             if(verbose >= 1){
-                for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
-                    printk("invalid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
-                }
+                printk("----invalid state detected----\n");
+                print_memstate(initial_mem_state);
                 printk("\n");
                 printk("\n");
             }

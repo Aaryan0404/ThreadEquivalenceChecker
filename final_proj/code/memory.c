@@ -46,3 +46,9 @@ bool verify_memory_state(memory_segments* memory_state, uint64_t *valid_hashes, 
     }
     return false;
 }
+
+void print_memstate(memory_segments* memory_state){
+    for (size_t j = 0; j < memory_state->num_ptrs; j++) {
+        printk("value at marked memory location %d: %d\n", j, *((int *)memory_state->ptr_list[j]));
+    }
+}

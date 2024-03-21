@@ -1,9 +1,10 @@
 
 # PROGS += state-space.c
-PROGS += 1-kid.c
-PROGS += 2-beginner.c 
-PROGS += 3-amateur.c 
-PROGS += 4-mid.c
+# PROGS += 1-kid.c
+# PROGS += 2-beginner.c 
+# PROGS += 3-amateur.c 
+# PROGS += 4-mid.c
+PROGS += 5-cool.c
 
 COMMON_SRC += sha256.c
 COMMON_SRC += interleaver.c
