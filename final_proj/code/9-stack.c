@@ -3,7 +3,7 @@
 #include "interleaver.h"
 
 #define MAX_STACK_SIZE 100
-#define NUM_VARS 1
+#define NUM_VARS 2
 #define NUM_FUNCS 2
 
 typedef int vibe_check_t;
@@ -31,53 +31,48 @@ int *global_value;  // Global variable for the value
 void stack_init(AtomicStack *stack) {
     stack->top = -1;
     vibe_init(&stack->lock);
-}
-
-int stack_push(AtomicStack *stack, int value) {
-    secure_vibes(&stack->lock);
-    if (stack->top >= MAX_STACK_SIZE - 1) {
-        release_vibes(&stack->lock);
-        return -1; // Stack overflow
+    // Initialize the stack with values from 0 to 99
+    for (int i = 0; i < MAX_STACK_SIZE; i++) {
+        stack->data[++stack->top] = i;
     }
-    stack->top += 1;
-    stack->data[stack->top] = value;
-    release_vibes(&stack->lock);
-    return 0;
 }
 
-int stack_pop(AtomicStack *stack, int *value) {
+int stack_pop(AtomicStack *stack, int *global_value) {
     secure_vibes(&stack->lock);
     if (stack->top < 0) {
         release_vibes(&stack->lock);
         return -1; // Stack underflow
     }
-    *value = stack->data[stack->top];
+    *global_value = stack->data[stack->top];
     stack->top -= 1;
     release_vibes(&stack->lock);
     return 0;
 }
 
-// Function A: Push to stack and update global_value
+// Function A: Pop from stack and update global_value
 void funcA(void **arg) {
-    int push_result = stack_push(&stack, 10);
-
-    secure_vibes(&cur_vibes);
-    if (push_result == 0) {
-        *global_value = 10;  // Update global_value if push is successful
-    }
-    release_vibes(&cur_vibes);
+    stack_pop(&stack, global_value);
 }
 
-// Function B: Pop from stack and update global_value
+// Function B: Pop from stack and update global_value (similar to funcA)
 void funcB(void **arg) {
-    int pop_value;
-    int pop_result = stack_pop(&stack, &pop_value);
+    stack_pop(&stack, global_value);
+}
 
-    secure_vibes(&cur_vibes); 
-    if (pop_result == 0) {
-        *global_value = pop_value;  // Update global_value if pop is successful
+void funcA_bad(void **arg) {
+    if (stack.top < 0) {
+        return;
     }
-    release_vibes(&cur_vibes);
+    *global_value = stack.data[stack.top];
+    stack.top -= 1;
+}
+
+void funcB_bad(void **arg) {
+    if (stack.top < 0) {
+        return;
+    }
+    *global_value = stack.data[stack.top];
+    stack.top -= 1;
 }
 
 void notmain() {
@@ -87,7 +82,8 @@ void notmain() {
     global_value = kmalloc(sizeof(int));
     *global_value = 0;
 
-    int interleaved_ncs = 1;
+    int interleaved_ncs = 2;
+
     function_exec executables[NUM_FUNCS];
     executables[0].func_addr = (func_ptr)funcA;
     executables[0].num_vars = 0;
@@ -97,6 +93,15 @@ void notmain() {
     executables[1].num_vars = 0;
     executables[1].var_list = NULL;
 
+    // function_exec executables[NUM_FUNCS];
+    // executables[0].func_addr = (func_ptr)funcA_bad;
+    // executables[0].num_vars = 0;
+    // executables[0].var_list = NULL;
+
+    // executables[1].func_addr = (func_ptr)funcB_bad;
+    // executables[1].num_vars = 0;
+    // executables[1].var_list = NULL;
+
     const size_t num_perms = factorial(NUM_FUNCS);
     int **itl = kmalloc(num_perms * sizeof(int *));
     for (int i = 0; i < num_perms; i++) {
@@ -105,13 +110,15 @@ void notmain() {
     find_permutations(itl, NUM_FUNCS);
 
     uint64_t valid_hashes[num_perms];
-    find_good_hashes(executables, NUM_FUNCS, itl, num_perms, NULL, valid_hashes);
 
     // Initialize memory state
-    int *global_vars[NUM_VARS] = {global_value};  // Include global_value
-    size_t sizes[NUM_VARS] = {sizeof(int)};
+    void *global_vars[NUM_VARS] = {(void *)global_value, (void *)&stack};
+    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int) * (MAX_STACK_SIZE + 1)}; 
+    
     memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes};
     initialize_memory_state(&initial_mem_state);
+
+    find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
 
     int load_store_mode = 1;
     // run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);

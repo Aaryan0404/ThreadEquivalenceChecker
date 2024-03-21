@@ -96,9 +96,9 @@ void notmain() {
     // executables[0].func_addr = (func_ptr)funcA_bad;
     // executables[1].func_addr = (func_ptr)funcB_bad;
 
-    find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-
     vibe_init(&cur_vibes);
+
+    find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
     // run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
     run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
 }
