@@ -55,9 +55,11 @@ uint32_t get_num_schedules(int *num_instrs, size_t total_instrs, size_t num_func
 void interleave(int *counts, int *limits, int *result, uint32_t *count, int n, int total_chars, int switches, int ncs, int level, int lastInt, int **interleave_output) {
     if (level == total_chars && switches == ncs) {
         if (interleave_output != NULL) {
+            for (int i = 0; i < level; i++) {
+                interleave_output[*count][i] = result[i];
+            }
             if(verbose >= 3){
                 for (int i = 0; i < level; i++) {
-                    interleave_output[*count][i] = result[i];
                     printk("%d", result[i]);
                 }
                 printk("\n");
@@ -280,7 +282,7 @@ void interleave_and_run(int *counts, int *limits, int *result, uint32_t *count, 
                 printk("\n");
             }
         } else {
-            //*escape = true;
+            *escape = true;
             if(verbose >= 1){
                 for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
                     printk("invalid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
