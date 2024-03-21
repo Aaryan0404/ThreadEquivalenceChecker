@@ -42,10 +42,10 @@ void notmain() {
     *global_var2 = 10;
     
     // convert global vars to an array of pointers
-    int *global_vars[NUM_VARS] = {global_var, global_var2};
+    int *mem_locations[NUM_VARS] = {global_var, global_var2};
     size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int)};
 
-    memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes}; 
+    memory_segments initial_mem_state = {NUM_VARS, (void **)mem_locations, NULL, sizes}; 
     initialize_memory_state(&initial_mem_state);
 
     const size_t num_perms = factorial(NUM_FUNCS);
