@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include "rpi.h"
 
-int verbose = 6;
+int verbose = 3;
 
 void reset_threads(eq_th_t **thread_arr, size_t num_threads){
     for (int i = 0; i < num_threads; i++) {

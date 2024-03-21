@@ -183,11 +183,11 @@ MK_FN(syscall_trampoline)
     bx lr
 
 
-.global try_lock
-.global spin_lock
-.global spin_unlock
+.global vibe_check
+.global secure_vibes
+.global release_vibes
 
-try_lock:
+vibe_check:
     mrs     r3, cpsr
     cpsid   i               @ Disable interrupts
     mov     r1, #1
@@ -196,7 +196,7 @@ try_lock:
     msr     cpsr_c, r3      @ restore og state of interrupt
     bx      lr              
 
-spin_lock:
+secure_vibes:
     mrs     r1, cpsr      @ save og cpsr state
     cpsid   i             @ disable interrupts
 1:  ldr     r2, [r0]      @ load lock into r2
@@ -209,7 +209,7 @@ spin_lock:
     msr     cpsr_c, r1    @ restore og cpsr
     bx      lr            
 
-spin_unlock:
+release_vibes:
     mov     r1, #0
     str     r1, [r0]     @ set lock to available
-    bx      lr           
+    bx      lr      

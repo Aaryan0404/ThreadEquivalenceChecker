@@ -6,7 +6,9 @@
 # PROGS += 4-mid.c
 # PROGS += 5-cool.c
 # PROGS += 6-fast.c
-PROGS += 7-locks.c
+# PROGS += 7-vibes.c
+# PROGS += 8-more_vibes.c
+PROGS += 9-stack.c
 
 COMMON_SRC += sha256.c
 COMMON_SRC += interleaver.c

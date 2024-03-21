@@ -5,45 +5,45 @@
 #define NUM_VARS 2
 #define NUM_FUNCS 2
 
-typedef int spin_lock_t;
+typedef int vibe_check_t;
 
 // Assembly function to try acquiring the lock
-extern int try_lock(spin_lock_t *lock);
-extern void spin_lock(spin_lock_t *lock);
-extern void spin_unlock(spin_lock_t *lock);
+extern int vibe_check(vibe_check_t *cur_vibes);
+extern void secure_vibes(vibe_check_t *cur_vibes);
+extern void release_vibes(vibe_check_t *cur_vibes);
 
 // Spin lock functions
-void spin_init(spin_lock_t *lock) {
-    *lock = 0; // 0 indicates that the lock is available
+void vibe_init(vibe_check_t *cur_vibes) {
+    *cur_vibes = 0; // 0 indicates that the lock is available
 }
 
 int* global_var;
 int* global_var2;
-spin_lock_t lock; // Global spin lock
+vibe_check_t cur_vibes; // Global spin lock
 
 // Function A
 void funcA(void **arg) {
     // spin_lock(&lock); // Acquire the lock
-    spin_lock(&lock); // Acquire the lock
+    secure_vibes(&cur_vibes); // Acquire the lock
     
     // Perform operations
     *global_var += 1;
     *global_var2 = *global_var;
 
-    spin_unlock(&lock); // Release the lock
+    release_vibes(&cur_vibes); // Release the lock
     // spin_unlock(&lock); // Release the lock
 }
 
 // Function B 
 void funcB(void **arg) {
     // spin_lock(&lock); // Acquire the lock
-    spin_lock(&lock); // Acquire the lock
+    secure_vibes(&cur_vibes); // Acquire the lock
     
     // Perform operations
     *global_var += 2;
     *global_var2 = *global_var; 
 
-    spin_unlock(&lock); // Release the lock
+    release_vibes(&cur_vibes); // Release the lock
     // spin_unlock(&lock); // Release the lock
 }
 
@@ -82,7 +82,8 @@ void notmain() {
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
 
     int load_store_mode = 1;  
-    spin_init(&lock);
-    run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    vibe_init(&cur_vibes);
+    // run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
 }
 
