@@ -206,8 +206,8 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
         if(verbose >= 1){
             printk("schedule %d: ", sched_idx);
             for (int i = 0; i < actual_ncs; i++) {
-                printk("(tid: %d", tids[sched_idx][i] - 1);
-                printk(", instr #: %d) ", instr_nums[sched_idx][i]);
+                printk("(fid: %d", tids[sched_idx][i] - 1);
+                printk(", instr: %d) ", instr_nums[sched_idx][i]);
             }
             printk("\n");
         }
@@ -314,13 +314,14 @@ void run_schedule(uint32_t total_instrs, int num_funcs, int ncs, int *raw_sched,
             ncs_idx += 1;
         }
     }
-    if(verbose >= 2){
+    if(verbose >= 1){
+        printk("schedule: ");
         for (int i = 0; i < actual_ncs; i++) {
-            printk("(%d", tids[i] - 1);
-            printk(", %d) ", instr_nums[i]);
+            printk("(fid: %d", tids[i] - 1);
+            printk(", instr: %d) ", instr_nums[i]);
         }
         printk("\n");
-    }
+}
     
     reset_memory_state(initial_mem_state);
     set_ctx_switches(tids, instr_nums, actual_ncs); 
@@ -351,18 +352,16 @@ void interleave_and_run(int *counts, int *limits, int *result, uint32_t *count, 
 
         if (valid) {
             if(verbose >= 2){
-                for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
-                    printk("valid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
-                }
+                printk("valid state:\n");
+                print_memstate(initial_mem_state);
                 printk("\n");
                 printk("\n");
             }
         } else {
             *escape = true;
             if(verbose >= 1){
-                for (size_t j = 0; j < initial_mem_state->num_ptrs; j++) {
-                    printk("invalid, global var: %d\n", *((int *)initial_mem_state->ptr_list[j]));
-                }
+                printk("----invalid state detected----\n");
+                print_memstate(initial_mem_state);
                 printk("\n");
                 printk("\n");
             }
