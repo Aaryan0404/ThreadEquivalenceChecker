@@ -4,7 +4,7 @@
 
 #define NUM_VARS 2
 #define NUM_FUNCS 2
-
+#define load_store_mode 1
 
 // USER CODE
 int* global_var;
@@ -48,37 +48,15 @@ void notmain() {
     memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes}; 
     initialize_memory_state(&initial_mem_state);
 
-    // print statement that shows value of 
-    // initial memory state
-    for (int i = 0; i < initial_mem_state.num_ptrs; i++) {
-        printk("initial_mem_state.ptr_list[%d]: %d\n", i, *((int *)initial_mem_state.ptr_list[i]));
-    }
-
-    // dependeing on num functions, generate
-    // a 2d array of function interleavings (sequential outcomes)
     const size_t num_perms = factorial(NUM_FUNCS);
-    int **itl = kmalloc(num_perms * sizeof(int *));
-    for (int i = 0; i < num_perms; i++) {
-        itl[i] = kmalloc(NUM_FUNCS * sizeof(int));
-    }
-    find_permutations(itl, NUM_FUNCS);
-
-    // create an array (set) of memory hashes
+    int **itl = get_func_permutations(NUM_FUNCS);
     uint64_t valid_hashes[num_perms];
 
     function_exec *executables = kmalloc(NUM_FUNCS * sizeof(function_exec));
-
     executables[0].func_addr = (func_ptr)funcMA;
-    executables[0].num_vars = 0; 
-    executables[0].var_list = NULL;
-
     executables[1].func_addr = (func_ptr)funcMS;
-    executables[1].num_vars = 0; 
-    executables[1].var_list = NULL;
-
-    int load_store_mode = 1; 
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-    run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
-    // run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    // run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
 }

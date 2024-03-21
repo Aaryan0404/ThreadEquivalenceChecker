@@ -40,3 +40,13 @@ void find_permutations(int **itl, int num_funcs) {
     int count = 0;
     permute(itl, arr, 0, num_funcs - 1, &count);
 }
+
+int** get_func_permutations(int num_funcs){
+    const size_t num_perms = factorial(num_funcs);
+    int **itl = kmalloc(num_perms * sizeof(int *));
+    for (int i = 0; i < num_perms; i++) {
+        itl[i] = kmalloc(num_funcs * sizeof(int));
+    }
+    find_permutations(itl, num_funcs);
+    return itl;
+}

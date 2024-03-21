@@ -4,6 +4,7 @@
 
 #define NUM_VARS 2
 #define NUM_FUNCS 2
+#define load_store_mode 1
 
 typedef int vibe_check_t;
 
@@ -86,35 +87,17 @@ void notmain() {
     initialize_memory_state(&initial_mem_state);
 
     const size_t num_perms = factorial(NUM_FUNCS);
-    int **itl = kmalloc(num_perms * sizeof(int *));
-    for (int i = 0; i < num_perms; i++) {
-        itl[i] = kmalloc(NUM_FUNCS * sizeof(int));
-    }
-    find_permutations(itl, NUM_FUNCS);
-
+    int **itl = get_func_permutations(NUM_FUNCS);
     uint64_t valid_hashes[num_perms];
 
     function_exec *executables = kmalloc(NUM_FUNCS * sizeof(function_exec));
     executables[0].func_addr = (func_ptr)funcA;
-    executables[0].num_vars = 0;
-    executables[0].var_list = NULL;
-
     executables[1].func_addr = (func_ptr)funcB;
-    executables[1].num_vars = 0;
-    executables[1].var_list = NULL;
-
-    // function_exec *executables = kmalloc(NUM_FUNCS * sizeof(function_exec));
     // executables[0].func_addr = (func_ptr)funcA_bad;
-    // executables[0].num_vars = 0;
-    // executables[0].var_list = NULL;
-
     // executables[1].func_addr = (func_ptr)funcB_bad;
-    // executables[1].num_vars = 0;
-    // executables[1].var_list = NULL;
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
 
-    int load_store_mode = 1;  
     vibe_init(&cur_vibes);
     // run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
     run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);

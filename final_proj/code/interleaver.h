@@ -9,6 +9,8 @@ typedef struct {
     void *var_list; // Pointer to the list of variables
 } function_exec; 
 
+void set_verbosity(int v);
+
 void reset_threads(eq_th_t **thread_arr, size_t num_threads);
 size_t init_threads(eq_th_t **thread_arr, function_exec* executables, int **itl, size_t num_funcs, int *num_instrs);
 

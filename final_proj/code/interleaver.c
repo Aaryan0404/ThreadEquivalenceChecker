@@ -5,6 +5,10 @@
 
 int verbose = 3;
 
+void set_verbosity(int v){
+    verbose = v;
+}
+
 void reset_threads(eq_th_t **thread_arr, size_t num_threads){
     for (int i = 0; i < num_threads; i++) {
         equiv_refresh(thread_arr[i]);
