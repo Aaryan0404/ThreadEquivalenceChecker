@@ -3,7 +3,7 @@
 #include "interleaver.h"
 
 #define NUM_VARS 1
-#define NUM_FUNCS 1
+#define NUM_FUNCS 2
 
 
 // USER CODE
@@ -14,10 +14,13 @@ void funcMA(void **arg) {
     int a = *global_var;
     a += 1; 
     *global_var = a;   
+}
 
-    int b = *global_var2;
-    b *= 2;
-    *global_var2 = b;
+// subtracts 1 from global var a
+void funcMS(void **arg) {
+    int b = *global_var;
+    b += 1;
+    *global_var = b;
 }
 
 void notmain() {    
@@ -26,6 +29,7 @@ void notmain() {
 
     global_var = kmalloc(sizeof(int));
     *global_var = 5;
+    
     // convert global vars to an array of pointers
     int *global_vars[NUM_VARS] = {global_var};
     size_t sizes[NUM_VARS] = {sizeof(int)};
@@ -57,7 +61,13 @@ void notmain() {
     executables[0].num_vars = 0; 
     executables[0].var_list = NULL;
 
+    executables[1].func_addr = (func_ptr)funcMS;
+    executables[1].num_vars = 0; 
+    executables[1].var_list = NULL;
+
+    int load_store_mode = 1; 
+
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-    //run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs); 
-    run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs);
+    run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    // run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
 }
