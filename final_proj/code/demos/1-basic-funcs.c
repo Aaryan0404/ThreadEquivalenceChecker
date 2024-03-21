@@ -5,19 +5,6 @@
 #define NUM_VARS 3
 #define NUM_FUNCS 3
 
-/*
-POTENTIAL TODOS:
-1) Memory - Read/write set consistency with VM
-2) Speed - run interleaving after generating each permutation
-3) General - compile at a higher optimization (also will reduce instructions which reduces speed)
-*/
-
-/*
-APPLICATIONS: 
-- basic self-generated correct and incorrect examples
-- GPT generated lock-free data structures
-- c standard atomics
-*/
 
 // USER CODE
 int* global_var;
@@ -59,12 +46,6 @@ void notmain() {
     // number of interleaved context switches (remaining context switches will result in threads being run to completion)
     int interleaved_ncs = 1; 
 
-    // arbitrary number of global vars, 
-    // wrapped in initial_mem_state struct
-        // will contain actual memory (to be modified)
-        // will contain copy of original memory
-
-    // allocate and initialize global vars
     global_var = kmalloc(sizeof(int));
     global_var2 = kmalloc(sizeof(int));
     global_var3 = kmalloc(sizeof(int));
@@ -112,6 +93,6 @@ void notmain() {
     executables[2].var_list = NULL;
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-    run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs); 
-    // run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs);
+    //run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs); 
+    run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs);
 }

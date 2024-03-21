@@ -1,6 +1,7 @@
 
-PROGS += state-space.c
-# PROGS += 10-equiv-check.c
+# PROGS += state-space.c
+PROGS += 2-atomics.c
+
 COMMON_SRC += sha256.c
 COMMON_SRC += interleaver.c
 COMMON_SRC += permutations.c

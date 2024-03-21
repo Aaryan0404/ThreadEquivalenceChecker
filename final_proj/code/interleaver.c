@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include "rpi.h"
 
-int verbose = 3;
+int verbose = 6;
 
 void reset_threads(eq_th_t **thread_arr, size_t num_threads){
     for (int i = 0; i < num_threads; i++) {
@@ -254,7 +254,13 @@ void run_schedule(uint32_t total_instrs, int num_funcs, int ncs, int *raw_sched,
     
     reset_memory_state(initial_mem_state);
     set_ctx_switches(tids, instr_nums, actual_ncs); 
+    if(verbose >= 5){
+        trace("about to equiv run\n");
+    }
     equiv_run();
+    if(verbose >= 5){
+        trace("resetting threads\n");
+    }
     reset_threads(thread_arr, num_funcs);
 }
 
@@ -332,9 +338,19 @@ void run_interleavings_as_generated(function_exec* executables, size_t num_funcs
     // calculate num instrs for each function
     // via sequential execution
     disable_ctx_switch();
+    
     int* num_instrs = kmalloc(num_funcs * sizeof(int));
     eq_th_t *threads[num_funcs];
+    if(verbose >= 5){
+        trace("initializing threads\n");
+    }
     size_t total_instrs = init_threads(threads, executables, itl, num_funcs, num_instrs);
+    if(verbose >= 5){
+        trace("reset threads\n");
+    }
     reset_threads(threads, num_funcs);
+    if(verbose >= 5){
+        trace("generating schedules\n");
+    }
     generate_and_run_schedules(num_instrs, total_instrs, num_funcs, ncs, threads, initial_mem_state, num_perms, valid_hashes);
 }
