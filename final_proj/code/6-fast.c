@@ -76,4 +76,5 @@ void notmain() {
 
     int load_store_mode = 0;  
     run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    //run_interleavings_unlimited_ctx(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
 }
