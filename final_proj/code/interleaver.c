@@ -17,10 +17,11 @@ size_t init_threads(eq_th_t **thread_arr, function_exec* executables, int **itl,
         let th = equiv_fork(executables[itl[0][f_idx]].func_addr, NULL, 0);
         thread_arr[f_idx] = th;
         equiv_run();
-        num_instrs[f_idx] = th->loadstr_cnt;
+        //num_instrs[f_idx] = th->loadstr_cnt;
     }
     size_t total_instrs = 0;
     for (int i = 0; i < num_funcs; i++) {
+        num_instrs[i] = thread_arr[i]->loadstr_cnt;
         total_instrs += num_instrs[i];
     }
     return total_instrs;
@@ -234,6 +235,51 @@ void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, 
                 printk("\n");
                 printk("\n");
             }
+        }
+    }
+}
+
+void run_interleavings_unlimited_ctx(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs, int loadstr) {
+    equiv_set_load_str_mode(loadstr);
+    equiv_init();
+    uint32_t max_instrs = 0;
+
+    // calculate num instrs for each function
+    // via sequential execution
+    disable_ctx_switch();
+    int* num_instrs = kmalloc(num_funcs * sizeof(int));
+    eq_th_t *threads[num_funcs];
+    size_t total_instrs = init_threads(threads, executables, itl, num_funcs, num_instrs);
+    reset_threads(threads, num_funcs);
+
+    reset_memory_state(initial_mem_state);
+    
+    printk("running fully interleaved\n\n");
+    disable_ctx_switch();
+    equiv_run();
+    reset_threads(threads, num_funcs);
+
+    uint64_t hash = capture_memory_state(initial_mem_state);
+    bool valid = false;
+    for (size_t j = 0; j < num_perms; j++) {
+        if (hash == valid_hashes[j]) {
+            valid = true;
+            break;
+        }
+    }
+    if (valid) {
+        if(verbose >= 2){
+            printk("valid state:\n");
+            print_memstate(initial_mem_state);
+            printk("\n");
+            printk("\n");
+        }
+    } else {
+        if(verbose >= 1){
+            printk("----invalid state detected----\n");
+            print_memstate(initial_mem_state);
+            printk("\n");
+            printk("\n");
         }
     }
 }
