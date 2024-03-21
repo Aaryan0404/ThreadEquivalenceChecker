@@ -1,12 +1,12 @@
 
 # PROGS += state-space.c
-# PROGS += 1-kid.c
-# PROGS += 2-beginner.c 
-# PROGS += 3-amateur.c 
-# PROGS += 4-mid.c
-# PROGS += 5-cool.c
-# PROGS += 6-fast.c
-# PROGS += 7-vibes.c
+PROGS += 1-kid.c
+PROGS += 2-beginner.c 
+PROGS += 3-amateur.c 
+PROGS += 4-mid.c
+PROGS += 5-cool.c
+PROGS += 6-fast.c
+PROGS += 7-vibes.c
 PROGS += 8-more_vibes.c
 # PROGS += 9-stack.c
 
