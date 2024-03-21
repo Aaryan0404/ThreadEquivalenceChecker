@@ -53,8 +53,10 @@ void find_good_hashes(function_exec* executables, size_t num_funcs, int **itl, s
                 }
             }
             if(!hash_already_seen){
-                printk("ground truth valid state\n");
+                printk("------------------------\n");
+                printk("ground truth valid state:\n");
                 print_memstate(initial_mem_state);
+                printk("------------------------\n");
                 printk("\n");
             }
         }

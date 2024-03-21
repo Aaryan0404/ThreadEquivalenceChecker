@@ -35,10 +35,10 @@ void notmain() {
     global_var3 = kmalloc(sizeof(int));
     *global_var3 = 0;
 
-    int *global_vars[NUM_VARS] = {global_var3};
+    int *mem_locations[NUM_VARS] = {global_var3};
     size_t sizes[NUM_VARS] = {sizeof(int)};
 
-    memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes};
+    memory_segments initial_mem_state = {NUM_VARS, (void **)mem_locations, NULL, sizes};
     initialize_memory_state(&initial_mem_state);
 
     const size_t num_perms = factorial(NUM_FUNCS);

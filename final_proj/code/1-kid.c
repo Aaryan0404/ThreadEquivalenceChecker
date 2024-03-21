@@ -19,7 +19,7 @@ void funcMA(void **arg) {
 // subtracts 1 from global var a
 void funcMS(void **arg) {
     int b = *global_var;
-    b += 1;
+    b *= 2;
     *global_var = b;
 }
 
@@ -31,10 +31,10 @@ void notmain() {
     *global_var = 5;
     
     // convert global vars to an array of pointers
-    int *global_vars[NUM_VARS] = {global_var};
+    int *mem_locations[NUM_VARS] = {global_var};
     size_t sizes[NUM_VARS] = {sizeof(int)};
 
-    memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes}; 
+    memory_segments initial_mem_state = {NUM_VARS, (void **)mem_locations, NULL, sizes}; 
     initialize_memory_state(&initial_mem_state);
 
     const size_t num_perms = factorial(NUM_FUNCS);
