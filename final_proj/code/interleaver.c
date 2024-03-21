@@ -142,7 +142,8 @@ void generate_schedules(int *num_instrs, size_t total_instrs, size_t num_funcs, 
 }
 
 // runs each interleaving for a given number of instructions
-void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs) {
+void run_interleavings(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs, int loadstr) {
+    equiv_set_load_str_mode(loadstr);
     equiv_init();
     uint32_t max_instrs = 0;
 
@@ -331,7 +332,8 @@ void generate_and_run_schedules(int *num_instrs, size_t total_instrs, size_t num
 }
 
 // runs each interleaving for a given number of instructions
-void run_interleavings_as_generated(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs) {
+void run_interleavings_as_generated(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs, int loadstr) {
+    equiv_set_load_str_mode(loadstr);
     equiv_init();
     uint32_t max_instrs = 0;
 

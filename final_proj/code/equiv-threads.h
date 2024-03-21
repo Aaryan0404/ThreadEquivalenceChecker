@@ -58,4 +58,5 @@ eq_th_t *equiv_fork_nostack(void (*fn)(void**), void **args, uint32_t expected_h
 
 void equiv_verbose_on(void);
 void equiv_verbose_off(void);
+void equiv_set_load_str_mode(int mode);
 #endif
