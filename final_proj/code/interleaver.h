@@ -28,3 +28,5 @@ void run_schedule(uint32_t total_instrs, int num_funcs, int ncs, int *raw_sched,
 void interleave_and_run(int *counts, int *limits, int *result, uint32_t *count, int num_funcs, int total_chars, int switches, int ncs, int level, int lastInt, eq_th_t **thread_arr, memory_segments* initial_mem_state, size_t num_perms, uint64_t *valid_hashes, bool* escape);
 void generate_and_run_schedules(int *num_instrs, size_t total_instrs, size_t num_funcs, int ncs, eq_th_t **thread_arr, memory_segments* initial_mem_state, size_t num_perms, uint64_t *valid_hashes);
 void run_interleavings_as_generated(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs, int loadstr);
+
+void run_one_schedule(function_exec* executables, size_t num_funcs, memory_segments* initial_mem_state, int loadstr, uint32_t* tid, uint32_t* instr_nums, uint32_t num_context_switches);

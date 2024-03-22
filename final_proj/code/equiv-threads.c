@@ -28,6 +28,8 @@ static int ctx_switch_idx = -1;
 // the total number of context switches
 static size_t num_context_switches = 0;
 
+static uint32_t init = 0;
+
 static int verbose_p = 1;
 void equiv_verbose_on(void) {
     verbose_p = 1;
@@ -364,6 +366,8 @@ void equiv_run(void) {
 
 // one time initialazation
 void equiv_init(void) {
+    if(init)
+        return;
     kmalloc_init();
     mini_step_init(equiv_hash_handler, 0);
     full_except_set_syscall(equiv_syscall_handler);
