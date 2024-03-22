@@ -3,9 +3,25 @@
 #include "interleaver.h"
 
 #define QUEUE_SIZE 100
-#define NUM_VARS 2
+#define NUM_VARS 3
 #define NUM_FUNCS 4
 #define load_store_mode 1
+
+/// GPT GENERATED circular queue
+
+// PROMPT: 
+// Here is an example of a 
+// thread-safe implementation of stack 
+// with two consumers - now, I want you to 
+// replicate this for a circular queue implementation 
+// (define it custom like the stack) - and, define more 
+// functions (like funcA and funcB) to make this a thread 
+// safe implementation of multi-producer multi-consumer
+// scenario - use the vibe_check locks api shown in the
+// example, but to optimize concurrency, use a different lock 
+// for the enqueue and dequeue operations.
+
+// RESPONSE: Below
 
 typedef int vibe_check_t;
 
@@ -29,6 +45,7 @@ typedef struct {
 
 AtomicQueue queue;
 int *global_value;
+int *global_value2;
 
 void queue_init(AtomicQueue *queue) {
     queue->front = -1;
@@ -41,7 +58,7 @@ void queue_enqueue(AtomicQueue *queue, int value) {
     secure_vibes(&queue->enqueue_lock);
     if ((queue->rear + 1) % QUEUE_SIZE == queue->front) {
         release_vibes(&queue->enqueue_lock);
-        return;
+        return; 
     }
     if (queue->front == -1) {
         queue->front = 0;
@@ -55,7 +72,7 @@ void queue_dequeue(AtomicQueue *queue, int *value) {
     secure_vibes(&queue->dequeue_lock);
     if (queue->front == -1) {
         release_vibes(&queue->dequeue_lock);
-        return; // Queue is empty
+        return; 
     }
     *value = queue->data[queue->front];
     if (queue->front == queue->rear) {
@@ -72,11 +89,11 @@ void producerA(void **arg) {
 }
 
 void producerB(void **arg) {
-    queue_enqueue(&queue, 20);
+    queue_enqueue(&queue, 10);
 }
 
 void consumerA(void **arg) {
-    queue_dequeue(&queue,global_value);
+    queue_dequeue(&queue, global_value2);
 }
 
 void consumerB(void **arg) {
@@ -90,7 +107,10 @@ void notmain() {
     global_value = kmalloc(sizeof(int));
     *global_value = 0;
 
-    int interleaved_ncs = 2;
+    global_value2 = kmalloc(sizeof(int));
+    *global_value2 = 0;
+
+    int interleaved_ncs = 1;
 
     function_exec executables[NUM_FUNCS];
     executables[0].func_addr = (func_ptr)producerA;
@@ -102,13 +122,12 @@ void notmain() {
     const size_t num_perms = factorial(NUM_FUNCS);
     uint64_t valid_hashes[num_perms];
 
-    void *global_vars[NUM_VARS] = {(void *)global_value, (void *)&queue};
-    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int) * (QUEUE_SIZE + 4)}; 
+    void *global_vars[NUM_VARS] = {(void *)global_value, (void *)global_value2, (void *)&queue};
+    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int), sizeof(int) * (QUEUE_SIZE + 4)}; 
     
     memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes};
     initialize_memory_state(&initial_mem_state);
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-
     run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
 }

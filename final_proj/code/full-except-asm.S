@@ -210,9 +210,6 @@ secure_vibes:
     bx      lr            
 
 release_vibes:
-    mrs     r2, cpsr
-    cpsid   i
     mov     r1, #0
     str     r1, [r0]     @ set lock to available
-    msr     cpsr_c, r2
     bx      lr      
