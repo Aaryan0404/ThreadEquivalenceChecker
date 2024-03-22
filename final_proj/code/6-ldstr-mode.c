@@ -4,7 +4,7 @@
 
 #define NUM_VARS 2
 #define NUM_FUNCS 2
-#define load_store_mode 0
+#define load_store_mode 1
 
 int* global_var;
 int* global_var2;

@@ -25,8 +25,8 @@ void funcB(void **arg) {
 }
 
 void notmain() {
-    int interleaved_ncs = 1; 
-    // int interleaved_ncs = 2;
+    // int interleaved_ncs = 1; 
+    int interleaved_ncs = 2;
 
     global_var = kmalloc(sizeof(int));
     *global_var = 0;

@@ -18,9 +18,9 @@ void funcMA(void **arg) {
 
 // subtracts 1 from global var a
 void funcMS(void **arg) {
-    int b = *global_var;
-    b *= 2;
-    *global_var = b;
+    int a = *global_var;
+    a *= 2;
+    *global_var = a;
 }
 
 void notmain() {    
