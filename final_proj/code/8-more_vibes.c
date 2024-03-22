@@ -66,12 +66,6 @@ void funcB_bad(void **arg) {
     *global_var -= 1; 
 }
 
-void funcC_bad(void **arg) {
-    if (*global_var != 1) {
-        *global_var = 5; 
-    }
-}
-
 void notmain() {
     int interleaved_ncs = 2;
 
