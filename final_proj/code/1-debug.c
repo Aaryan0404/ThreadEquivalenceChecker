@@ -4,7 +4,7 @@
 
 #define NUM_VARS 1
 #define NUM_FUNCS 2
-#define load_store_mode 0
+#define load_store_mode 1
 
 // USER CODE
 int* global_var;
@@ -25,7 +25,7 @@ void funcMS(void **arg) {
 
 void notmain() {    
     // number of interleaved context switches (remaining context switches will result in threads being run to completion)
-    int interleaved_ncs = 1; 
+    
 
     global_var = kmalloc(sizeof(int));
     *global_var = 5;
@@ -45,7 +45,30 @@ void notmain() {
     executables[0].func_addr = (func_ptr)funcMA;
     executables[1].func_addr = (func_ptr)funcMS;
 
-    find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-    run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
-    // run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    /*
+    schedule 1: (fid: 0, instr: 5) (fid: 1, instr: 7) 
+    valid state:
+    marked memory 0 value: 12
+
+
+    schedule 2: (fid: 0, instr: 4) (fid: 1, instr: 7) 
+    ----invalid state detected----
+    marked memory 0 value: 6
+
+
+    schedule 3: (fid: 0, instr: 3) (fid: 1, instr: 7) 
+    ----invalid state detected----
+    marked memory 0 value: 6
+
+
+    schedule 4: (fid: 0, instr: 2) (fid: 1, instr: 7) 
+    valid state:
+    marked memory 0 value: 11
+
+    */
+    uint32_t sched_fid[2] = {0, 1};
+    uint32_t sched_instr[2] = {5, 7};
+    int interleaved_ncs = 1; 
+
+    run_one_schedule(executables, NUM_FUNCS, &initial_mem_state, load_store_mode, sched_fid, sched_instr, interleaved_ncs);
 }

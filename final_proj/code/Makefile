@@ -1,6 +1,7 @@
 
 # PROGS += state-space.c
-# PROGS += 1-basic.c
+PROGS += 1-basic.c
+# PROGS += 1-debug.c
 # PROGS += 2-multivar.c 
 # PROGS += 3-multifunc.c 
 # PROGS += 4-array.c
@@ -8,7 +9,7 @@
 # PROGS += 6-ldstr-mode.c
 # PROGS += 7-vibes.c
 # PROGS += 8-more_vibes.c
-PROGS += 9-stack.c
+# PROGS += 9-stack.c
 
 COMMON_SRC += sha256.c
 COMMON_SRC += interleaver.c

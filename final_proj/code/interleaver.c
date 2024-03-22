@@ -426,3 +426,24 @@ void run_interleavings_as_generated(function_exec* executables, size_t num_funcs
     }
     generate_and_run_schedules(num_instrs, total_instrs, num_funcs, ncs, threads, initial_mem_state, num_perms, valid_hashes);
 }
+
+void run_one_schedule(function_exec* executables, size_t num_funcs, memory_segments* initial_mem_state, int loadstr, uint32_t* tid, uint32_t* instr_nums, uint32_t num_context_switches){
+    // we don't support loadstr mode for running one schedule
+    assert(loadstr == 0);
+    
+    equiv_set_load_str_mode(loadstr);
+    equiv_init();
+    eq_th_t *threads[num_funcs];
+    for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
+        let th = equiv_fork(executables[f_idx].func_addr, NULL, 0);
+        threads[f_idx] = th;
+        // increment fid by one to convert to tid
+        tid[f_idx] = f_idx + 1;
+    }
+    reset_memory_state(initial_mem_state);
+    set_ctx_switches(tid, instr_nums, num_context_switches + num_funcs - 1); 
+    equiv_run();
+    reset_threads(threads, num_funcs);
+    printk("Memory state after running schedule:\n");
+    print_memstate(initial_mem_state);
+}
