@@ -61,7 +61,6 @@ void notmain() {
 
     function_exec *executables = kmalloc(NUM_FUNCS * sizeof(function_exec));
     executables[0].func_addr = (func_ptr)funcA;
-
     executables[1].func_addr = (func_ptr)funcB;
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
