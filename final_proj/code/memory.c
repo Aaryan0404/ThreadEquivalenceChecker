@@ -1,4 +1,6 @@
 #include "memory.h"
+#define XXH_INLINE_ALL 1
+#include "xxhash.h"
 
 // initialize ptr_og_list in memory state with a copy of the values in ptr_list
 void initialize_memory_state(memory_segments* memory_state) {
@@ -20,21 +22,14 @@ void reset_memory_state(memory_segments* memory_state) {
     }
 }
 
-void sha256_update_state(SHA256_CTX *ctx, memory_segments* memory_state){
-    for(size_t i = 0; i < memory_state->num_ptrs; i++){
-        sha256_update(ctx, (BYTE*)(memory_state->ptr_list)[i], memory_state->size_list[i]);
-    }
-}
-
 // get the hash of the bytes in the memory state
 uint32_t capture_memory_state(memory_segments* memory_state){
-    SHA256_CTX ctx;
-    BYTE buf[SHA256_BLOCK_SIZE];
-    sha256_init(&ctx);
-    sha256_update_state(&ctx, memory_state);
-    sha256_final(&ctx, buf);
-    uint32_t trunc_hash = *((uint32_t*)buf);
-    return trunc_hash;
+    XXH32_state_t* state = XXH32_createState();
+    for(size_t i = 0;i < memory_state->num_ptrs; i++) {
+      XXH32_update(state, (memory_state->ptr_list)[i], memory_state->size_list[i]);
+    }
+    XXH32_hash_t hash = XXH32_digest(state);
+    return hash;
 }
 
 bool verify_memory_state(memory_segments* memory_state, uint64_t *valid_hashes, size_t num_valid_hashes){
