@@ -368,7 +368,7 @@ void equiv_run(void) {
 void equiv_init(void) {
     if(init)
         return;
-    kmalloc_init();
+    //kmalloc_init();
     mini_step_init(equiv_hash_handler, 0);
     full_except_set_syscall(equiv_syscall_handler);
 }

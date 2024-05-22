@@ -11,6 +11,7 @@
 
 /* one time initialation of caches, tlb, etc */
 void mmu_init(void);
+void staff_mmu_init(void);
 // install trap handlers: should make more fine-grained.
 void mmu_install_handlers(void);
 

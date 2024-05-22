@@ -1,6 +1,7 @@
 #include "rpi.h"
 #include "permutations.h"
 #include "interleaver.h"
+#include "equiv-checker.h"
 
 #define NUM_VARS 1
 #define NUM_FUNCS 2
@@ -24,6 +25,7 @@ void funcMS(void **arg) {
 }
 
 void notmain() {    
+    equiv_checker_init();
     // number of interleaved context switches (remaining context switches will result in threads being run to completion)
     int interleaved_ncs = 1; 
 

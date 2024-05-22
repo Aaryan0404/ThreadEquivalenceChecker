@@ -7,6 +7,8 @@
 #include "mmu.h"
 #include "asm-helpers.h"
 
+#define USE_STAFF 0
+
 // given.
 
 int mmu_is_enabled(void) {
@@ -21,12 +23,17 @@ int mmu_is_enabled(void) {
 // done by the asm code (you'll write this next time).
 void mmu_disable_set(cp15_ctrl_reg1_t c) {
     assert(!c.MMU_enabled);
+
+#if USE_STAFF
+    staff_mmu_disable_set_asm(c);
+    return;
+#endif
     
     // record if dcache on.
     uint32_t cache_on_p = c.C_unified_enable;
 
     mmu_disable_set_asm(c);
-    //staff_mmu_disable_set_asm(c);
+    
 
     // re-enable if it was on.
     if(cache_on_p) {
@@ -52,8 +59,11 @@ void mmu_disable(void) {
 // real work (you'll write this code next time).
 void mmu_enable_set(cp15_ctrl_reg1_t c) {
     assert(c.MMU_enabled);
-    //staff_mmu_enable_set_asm(c);
+#if USE_STAFF
+    staff_mmu_enable_set_asm(c);
+#else
     mmu_enable_set_asm(c);
+#endif
 }
 
 // enable mmu by flipping enable bit.
@@ -81,8 +91,10 @@ void set_procid_ttbr0(unsigned pid, unsigned asid, fld_t *pt) {
 //  3. check that the coprocessor write succeeded.
 void mmu_init(void) { 
     //mmu_reset();
-    //staff_mmu_init();
-    //return;
+#if USE_STAFF
+    staff_mmu_init();
+    return;
+#endif
 
     // reset the MMU state: you will implement next lab
     //staff_mmu_reset();
@@ -105,19 +117,19 @@ void mmu_init(void) {
 // b4-42
 // set domain access control register to <r>
 void domain_access_ctrl_set(uint32_t r) {
+    
+#if USE_STAFF
+    staff_domain_access_ctrl_set(r);
+#else
     cp15_domain_ctrl_wr(r);
-    //staff_domain_access_ctrl_set(r);
-    assert(domain_access_ctrl_get() == r);
+#endif
+    //assert(domain_access_ctrl_get() == r);
 }
 
-void staff_mmu_init(void) {
-  mmu_init();
-}
-
-void staff_domain_access_ctrl_set(uint32_t d) {
+/*void staff_domain_access_ctrl_set(uint32_t d) {
   domain_access_ctrl_set(d);
 }
 
 void staff_set_procid_ttbr0(unsigned pid, unsigned asid, void *pt) {
   set_procid_ttbr0(pid, asid, (fld_t*)pt);
-}
+}*/

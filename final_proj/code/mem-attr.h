@@ -220,7 +220,7 @@ pin_aligned(uint32_t va, pin_t attr) {
 //    - non-cacheable
 //    - kernel R/W, user no-access
 static inline pin_t pin_mk_device(uint32_t dom) {
-    return pin_mk(1, dom, 0, perm_rw_priv, MEM_device);
+    return pin_mk(1, dom, 0, perm_rw_user, MEM_device);
 }
 
 
@@ -231,7 +231,7 @@ static inline pin_t pin_mk_device(uint32_t dom) {
 static inline pin_t
 pin_mk_global(uint32_t dom, mem_perm_t perm, mem_attr_t attr) {
     // G=1, asid=0.
-    return pin_mk(1, dom, 0, perm, attr);
+    return pin_mk(1, dom, 0, perm_rw_user, attr);
 }
 
 // must have:
@@ -240,7 +240,7 @@ pin_mk_global(uint32_t dom, mem_perm_t perm, mem_attr_t attr) {
 //  - domain should not be kernel domain (we don't check)
 static inline pin_t
 pin_mk_user(uint32_t dom, uint32_t asid, mem_perm_t perm, mem_attr_t attr) {
-    return pin_mk(0, dom, asid, perm, attr);
+    return pin_mk(0, dom, asid, perm_rw_user, attr);
 }
 
 #endif

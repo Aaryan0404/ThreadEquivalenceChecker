@@ -24,6 +24,11 @@ COMMON_SRC += mmu-helpers.c
 COMMON_SRC += mmu.c
 COMMON_SRC += pt-vm.c
 COMMON_SRC += your-mmu-asm.S
+# STAFF_OBJS += staff-mmu-asm.o
+# STAFF_OBJS += staff-pt-vm.o
+# STAFF_OBJS += staff-mmu.o
+
+COMMON_SRC += equiv-checker.c
 
 # uncomment if you want it to automatically run.
 RUN=1

@@ -79,6 +79,32 @@ MK_TRAMPOLINE(interrupt,        4, int_vector)
 @    faulted.
 prefetch_handler_full:
     @ initially we just forward to staff
+    @b staff_prefetch_trampoline_full
+
+    mov sp, #INT_STACK_ADDR
+    sub sp, sp, #(17 * 4)
+
+    @ Adjust LR according to arm1176 2-50
+    sub   lr, lr, #4
+
+    @ 0-14: general
+    stm sp, {r0-r14}^
+
+    @ 15: pc
+    str lr, [sp, #(15 * 4)]
+
+    @ 16: spsr
+    mrs r0, spsr
+    str r0, [sp, #(16 * 4)]
+
+    mov r0, sp
+    ldr r1, [sp, #(16 * 4)] @ CPSR
+    ldr r2, [sp, #(15 * 4)] @ PC
+    bl prefetch_abort_full_except
+
+    asm_not_reached();
+prefetch_handler_full_old:
+    @ initially we just forward to staff
     @ b staff_prefetch_trampoline_full
 
     mov sp, #INT_STACK_ADDR
@@ -107,6 +133,32 @@ prefetch_handler_full:
 @    faulted.
 data_abort_full:
     @ initially we just forward to staff
+    @b staff_data_abort_trampoline_full
+
+    mov sp, #INT_STACK_ADDR
+    sub sp, sp, #(17 * 4)
+
+    @ Adjust LR according to arm1176 2-51
+    sub   lr, lr, #8
+
+    @ 0-14: general
+    stm sp, {r0-r14}^
+
+    @ 15: pc
+    str lr, [sp, #(15 * 4)]
+
+    @ 16: spsr
+    mrs r0, spsr
+    str r0, [sp, #(16 * 4)]
+
+    mov r0, sp
+    ldr r1, [sp, #(16 * 4)] @ CPSR
+    ldr r2, [sp, #(15 * 4)] @ PC
+    bl data_abort_full_except
+
+    asm_not_reached();
+data_abort_full_old:
+    @ initially we just forward to staff
     @ b staff_data_abort_trampoline_full
 
     @ asm_todo("implement")
@@ -133,6 +185,31 @@ data_abort_full:
 @
 @ the pc in <regs> should point to the instruction after.
 syscall_full:
+    @ initially we just forward to staff
+    @b staff_syscall_trampoline_full
+
+    mov sp, #INT_STACK_ADDR
+    sub sp, sp, #(17 * 4)
+
+    @ Adjust LR according to arm1176 2-54
+    sub   lr, lr, #0
+
+    @ 0-14: general
+    stm sp, {r0-r14}^
+
+    @ 15: pc
+    str lr, [sp, #(15 * 4)]
+
+    @ 16: spsr
+    mrs r0, spsr
+    str r0, [sp, #(16 * 4)]
+
+    mov r0, sp
+    ldr r1, [sp, #(16 * 4)] @ CPSR
+    ldr r2, [sp, #(15 * 4)] @ PC
+    bl syscall_full_except
+    asm_not_reached();
+syscall_full_old:
     @ initially we just forward to staff
     @ b staff_syscall_trampoline_full
 

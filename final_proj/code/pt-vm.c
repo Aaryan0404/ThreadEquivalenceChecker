@@ -172,7 +172,7 @@ static inline pin_t attr_mk(pr_ent_t *e) {
         return pin_mk_device(e->dom);
     // kernel: currently everything is uncached.
     case MEM_RW:
-        return pin_mk_global(e->dom, perm_rw_priv, MEM_uncached);
+        return pin_mk_global(e->dom, perm_rw_user, MEM_uncached);
    case MEM_RO: 
         panic("not handling\n");
    default: 
@@ -218,7 +218,7 @@ vm_pt_t *vm_map_kernel(procmap_t *p, int enable_p) {
        vm_map_sec(pt, e->addr, e->addr, g);
     }
 
-    uint32_t d = dom_perm(p->dom_ids, DOM_client);
+    uint32_t d = dom_perm(p->dom_ids, DOM_manager);
     vm_mmu_init(d);
 
     if(enable_p) {
