@@ -1,6 +1,7 @@
 #include "rpi.h"
 #include "permutations.h"
 #include "interleaver.h"
+#include "equiv-checker.h"
 
 #define NUM_VARS 2
 #define NUM_FUNCS 2
@@ -50,6 +51,8 @@ void funcB(void **arg) {
 
 void notmain() {
     int interleaved_ncs = 2;
+
+    equiv_checker_init();
 
     global_var = kmalloc(sizeof(int));
     *global_var = 0;

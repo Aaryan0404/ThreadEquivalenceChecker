@@ -27,13 +27,13 @@
 @    armv6-coprocessor-asm.h
 @ and the other armv6-*.h files
 
-MK_FN(cp15_ctrl_reg1_rd)
-    mrc p15, 0, r0, c1, c0, 0
-    bx lr
+@ MK_FN(cp15_ctrl_reg1_rd)
+@     mrc p15, 0, r0, c1, c0, 0
+@     bx lr
 
-MK_FN(cp15_ctrl_reg1_wr)
-    mcr p15, 0, r0, c1, c0, 0
-    bx lr
+@ MK_FN(cp15_ctrl_reg1_wr)
+@     mcr p15, 0, r0, c1, c0, 0
+@     bx lr
 
 MK_FN(domain_access_ctrl_get)
     mrc p15, 0, r0, c3, c0, 0

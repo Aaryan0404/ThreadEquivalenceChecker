@@ -1,6 +1,7 @@
 #include "rpi.h"
 #include "permutations.h"
 #include "interleaver.h"
+#include "equiv-checker.h"
 
 #define MAX_STACK_SIZE 100
 #define NUM_VARS 2
@@ -77,6 +78,8 @@ void funcB_bad(void **arg) {
 }
 
 void notmain() {
+    equiv_checker_init();
+    
     stack_init(&stack);
     vibe_init(&cur_vibes);
     
