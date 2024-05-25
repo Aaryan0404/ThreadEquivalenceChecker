@@ -11,6 +11,7 @@
 int* global_var;
 
 // multiply by 4 and add 1
+__attribute__((section(".user")))
 void funcMA(void **arg) {
     int a = *global_var;
     a += 1; 
@@ -18,6 +19,7 @@ void funcMA(void **arg) {
 }
 
 // subtracts 1 from global var a
+__attribute__((section(".user")))
 void funcMS(void **arg) {
     int a = *global_var;
     a *= 2;

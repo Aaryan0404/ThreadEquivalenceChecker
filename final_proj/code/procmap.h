@@ -84,13 +84,14 @@ procmap_lookup(procmap_t *pmap, const void *addr) {
 //
 // mapping static sections.
 #include "memmap.h"
-static inline procmap_t procmap_default_mk(unsigned dom) {
+static inline procmap_t procmap_default_mk(unsigned dom, unsigned dom2) {
     enum { MB = 1024 * 1024 };
 
     procmap_t p = {};
     procmap_push(&p, pr_ent_mk(0x20000000, MB, MEM_DEVICE, dom));
     procmap_push(&p, pr_ent_mk(0x20100000, MB, MEM_DEVICE, dom));
     procmap_push(&p, pr_ent_mk(0x20200000, MB, MEM_DEVICE, dom));
+    procmap_push(&p, pr_ent_mk(0x300000,   MB, MEM_RW,     dom2));
 
     // make sure entire program fits on 1 page: when done, will split
     // this onto two pages and mark the code as RO.

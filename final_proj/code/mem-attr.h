@@ -26,6 +26,9 @@ enum { MB = 1024 * 1024 };
 // kernel domain = 1.  we leave 0 free so can sanity check.
 enum { kern_dom = 1 };
 
+enum { user_dom = 2 }; 
+
+
 // this enum flag is a three bit value
 //      AXP:1 << 2 | AP:2 
 // so that you can just bitwise or it into the 

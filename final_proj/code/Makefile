@@ -1,5 +1,5 @@
 # PROGS += state-space.c
-# PROGS += 1-basic.c
+PROGS += 1-basic.c
 # PROGS += 1-debug.c
 # PROGS += 2-multivar.c 
 # PROGS += 3-multifunc.c 
@@ -9,7 +9,7 @@
 # PROGS += 7-vibes.c
 # PROGS += 8-more_vibes.c
 # PROGS += 9-stack.c
-PROGS += 10-cq.c
+# PROGS += 10-cq.c
 
 COMMON_SRC += interleaver.c
 COMMON_SRC += permutations.c
@@ -29,6 +29,8 @@ COMMON_SRC += your-mmu-asm.S
 # STAFF_OBJS += staff-mmu.o
 
 COMMON_SRC += equiv-checker.c
+
+MEMMAP=./memmap
 
 # uncomment if you want it to automatically run.
 RUN=1
