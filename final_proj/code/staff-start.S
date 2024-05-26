@@ -1,4 +1,5 @@
 #include "rpi-asm.h"
+#include "equiv-checker-util.h"
 
 @ linker hack so we can force this file in the first portion of 
 @ the linked binary.
@@ -112,10 +113,12 @@ MK_FN(small2)
     mov r0, #0
     swi 1
 
+EQUIV_USER_ASM
 MK_FN(sys_equiv_exit)
     mov r0, #0
     swi 1
 
+EQUIV_USER_ASM
 MK_FN(sys_equiv_putc)
     push {lr}
     mov r1, r0

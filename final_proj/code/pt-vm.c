@@ -172,7 +172,7 @@ static inline pin_t attr_mk(pr_ent_t *e) {
         return pin_mk_device(e->dom);
     // kernel: currently everything is uncached.
     case MEM_RW:
-        return pin_mk_global(e->dom, perm_rw_user, MEM_uncached);
+        return pin_mk_global(e->dom, perm_rw_priv, MEM_uncached);
    case MEM_RO: 
         panic("not handling\n");
    default: 

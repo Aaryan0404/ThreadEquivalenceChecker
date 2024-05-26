@@ -11,7 +11,7 @@
 int* global_var;
 
 // multiply by 4 and add 1
-__attribute__((section(".user")))
+EQUIV_USER
 void funcMA(void **arg) {
     int a = *global_var;
     a += 1; 
@@ -19,7 +19,7 @@ void funcMA(void **arg) {
 }
 
 // subtracts 1 from global var a
-__attribute__((section(".user")))
+EQUIV_USER
 void funcMS(void **arg) {
     int a = *global_var;
     a *= 2;
@@ -33,7 +33,7 @@ void notmain() {
 
     global_var = kmalloc(sizeof(int));
     *global_var = 5;
-    
+
     // convert global vars to an array of pointers
     int *mem_locations[NUM_VARS] = {global_var};
     size_t sizes[NUM_VARS] = {sizeof(int)};
