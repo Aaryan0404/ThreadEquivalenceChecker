@@ -20,6 +20,8 @@ COMMON_SRC += switchto-asm.S
 COMMON_SRC += mini-step.c
 COMMON_SRC += staff-full-except.c 
 
+COMMON_SRC += equiv-malloc.c
+
 COMMON_SRC += mmu-helpers.c
 COMMON_SRC += mmu.c
 COMMON_SRC += pt-vm.c

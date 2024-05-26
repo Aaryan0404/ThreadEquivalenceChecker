@@ -2,6 +2,7 @@
 #include "procmap.h"
 #include "mem-attr.h"
 #include "pt-vm.h"
+#include "equiv-malloc.h"
 
 void equiv_copy_user_data() { 
 
@@ -18,9 +19,14 @@ void equiv_copy_user_data() {
 }
 
 void equiv_checker_init() {
-  // Initialize the heap
+  // Initialize the general heap
   enum { MB = 1024 * 1024 };
   kmalloc_init_set_start((void*)MB, MB);
+
+  // Initialize the equiv checker heap
+  uint32_t heap_size = 1024 * 512;
+  void* heap_start = kmalloc(heap_size);
+  equiv_malloc_init(heap_start, heap_size);
 
   equiv_copy_user_data();
 
