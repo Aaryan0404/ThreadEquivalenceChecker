@@ -3,9 +3,8 @@
 #include "mini-step.h"
 #include "equiv-threads.h"
 #include "fast-hash32.h"
-#include "mmu.h"
-#include "mem-attr.h"
 #include "armv6-debug-impl.h"
+#include "equiv-mmu.h"
 
 enum { stack_size = 1024 * 2 };
 _Static_assert(stack_size > 1024, "too small");

@@ -22,13 +22,9 @@ COMMON_SRC += staff-full-except.c
 
 COMMON_SRC += equiv-malloc.c
 
-COMMON_SRC += mmu-helpers.c
-COMMON_SRC += mmu.c
-COMMON_SRC += pt-vm.c
-COMMON_SRC += your-mmu-asm.S
-# STAFF_OBJS += staff-mmu-asm.o
-# STAFF_OBJS += staff-pt-vm.o
-# STAFF_OBJS += staff-mmu.o
+COMMON_SRC += equiv-mmu.c
+COMMON_SRC += equiv-pt.c
+COMMON_SRC += mmu-asm.S
 
 COMMON_SRC += equiv-checker.c
 

@@ -1,8 +1,6 @@
 #include "equiv-checker.h"
-#include "procmap.h"
-#include "mem-attr.h"
-#include "pt-vm.h"
 #include "equiv-malloc.h"
+#include "equiv-mmu.h"
 
 void equiv_copy_user_data() { 
 
