@@ -19,6 +19,7 @@ COMMON_SRC += full-except-asm.S
 COMMON_SRC += switchto-asm.S
 COMMON_SRC += mini-step.c
 COMMON_SRC += staff-full-except.c 
+COMMON_SRC += equiv-rw-set.c
 
 COMMON_SRC += equiv-malloc.c
 

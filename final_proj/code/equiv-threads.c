@@ -3,8 +3,8 @@
 #include "mini-step.h"
 #include "equiv-threads.h"
 #include "fast-hash32.h"
-#include "armv6-debug-impl.h"
 #include "equiv-mmu.h"
+#include "equiv-rw-set.h"
 
 enum { stack_size = 1024 * 2 };
 _Static_assert(stack_size > 1024, "too small");
@@ -299,22 +299,9 @@ int is_load_or_store(uint32_t instr){
     return 0;
 }
 
-static void set_data_faults(uint32_t enable) {
-  uint32_t domain_acl = domain_access_ctrl_get();
-
-  // Data faults will occur if the kernel domain has permission checks enabled.
-  // In this state, the MMU will check the permissions of kernel pages and
-  // fault because kernel pages all have perm_rw_priv and user code is run in
-  // user mode.
-  if(enable) domain_acl = bits_set(domain_acl, user_dom, user_dom+1, DOM_client);
-  else       domain_acl = bits_set(domain_acl, user_dom, user_dom+1, DOM_manager);
-  domain_access_ctrl_set(domain_acl);
-}
-
 
 // just print out the pc and instruction count.
 static void equiv_hash_handler(void *data, step_fault_t *s) {
-    set_data_faults(1);
     gcc_mb();
     let th = cur_thread;
     assert(th);
@@ -355,6 +342,8 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
         ctx_switch_idx++;
         equiv_schedule();
     }
+
+    rw_tracker_arm();
 }
 
 // run all the threads.
@@ -376,32 +365,12 @@ void equiv_run(void) {
     // this is roughly the same as in mini-step.c
     mismatch_on();
     //mismatch_pc_set(cur_thread->regs.regs[15]);
-    set_data_faults(0);
     switchto_cswitch(&start_regs, &cur_thread->regs);
     mismatch_off();
     //trace("done, returning\n");
 }
 
-static void data_abort(regs_t* r) {
-  uint32_t addr = cp15_far_get();
-  uint32_t pc = r->regs[REGS_PC];
-  uint32_t dfsr = cp15_dfsr_get();
 
-  // Parse DFSR according to B4-43
-  uint32_t status = (bit_isset(dfsr, 10) << 4) | bits_get(dfsr, 0, 3);
-  demand(status == 0b01101, only section permission faults expected);
-  uint32_t domain = bits_get(dfsr, 4, 7);
-  demand(domain != user_dom, we should never fault when accessing the user domain);
-  uint32_t w = bit_isset(dfsr, 11);
-
-  if(w) printk("instruction %x writes to %x\n", pc, addr);
-  else printk("instruction %x reads from %x\n", pc, addr);
-
-  // TODO: Here is where we'd (optionally) maintain a read and write set!!
-
-  // Disable data aborts
-  set_data_faults(0);
-}
 
 // one time initialazation
 void equiv_init(void) {
@@ -409,6 +378,6 @@ void equiv_init(void) {
         return;
     //kmalloc_init();
     mini_step_init(equiv_hash_handler, 0);
-    full_except_set_syscall(equiv_syscall_handler);
-    full_except_set_data_abort(data_abort);
+    rw_tracker_init(1);
+    full_except_set_syscall(equiv_syscall_handler); 
 }
