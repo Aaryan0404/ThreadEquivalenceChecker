@@ -1,3 +1,5 @@
+#ifndef __INTERLEAVER_H
+#define __INTERLEAVER_H
 #include "equiv-threads.h"
 #include "memory.h"
 
@@ -30,3 +32,4 @@ void generate_and_run_schedules(int *num_instrs, size_t total_instrs, size_t num
 void run_interleavings_as_generated(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs, int loadstr);
 
 void run_one_schedule(function_exec* executables, size_t num_funcs, memory_segments* initial_mem_state, int loadstr, uint32_t* tid, uint32_t* instr_nums, uint32_t num_context_switches);
+#endif

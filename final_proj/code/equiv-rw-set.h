@@ -1,6 +1,8 @@
 #ifndef __EQUIV_RW_SET
 #define __EQUIV_RW_SET
 
+#include "interleaver.h"
+
 /*
  * Definitions, handlers, and logic for read-write set maintenence.
  */
@@ -22,5 +24,7 @@ void rw_tracker_disable();
  */
 void rw_tracker_arm();
 void rw_tracker_disarm();
+
+void find_rw_set(func_ptr exe);
 
 #endif

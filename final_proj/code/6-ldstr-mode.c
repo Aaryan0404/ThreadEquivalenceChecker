@@ -11,6 +11,7 @@ int* global_var;
 int* global_var2;
 
 // Function A - increment global_var and set global_var2 to its new value
+EQUIV_USER
 void funcA(void **arg) {
     int a = *global_var;
     a += 1;
@@ -27,6 +28,7 @@ void funcA(void **arg) {
 }
 
 // Function B - double global_var2 and increment global_var based on the new value of global_var2
+EQUIV_USER
 void funcB(void **arg) {
     int b = *global_var2;
     b *= 2;

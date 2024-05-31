@@ -3,6 +3,8 @@
 #include "full-except.h"
 #include "equiv-rw-set.h"
 #include "armv6-debug-impl.h"
+#include "interleaver.h"
+#include "equiv-threads.h"
 
 static uint32_t rw_tracker_enabled;
 
@@ -48,5 +50,29 @@ void set_data_faults(uint32_t enable) {
   domain_access_ctrl_set(domain_acl);
 }
 
-void rw_tracker_arm() { set_data_faults(1); }
+// Only arms if enabled
+void rw_tracker_arm() { if(rw_tracker_enabled) set_data_faults(1); }
+
+// Always disarms
 void rw_tracker_disarm() { set_data_faults(0); }
+
+
+// Finds read and write sets for a function
+void find_rw_set(func_ptr exe) {
+  // Initialize single stepping & threads
+  equiv_init();
+
+  // Disable context switching
+  disable_ctx_switch();
+
+  // Enable the RW tracker
+  rw_tracker_enable();
+
+  // Run our function
+  eq_th_t* t = equiv_fork(exe, NULL, 0);
+  equiv_run();
+
+  // Clean up
+  rw_tracker_disable();
+}
+

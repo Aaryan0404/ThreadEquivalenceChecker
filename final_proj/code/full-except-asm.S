@@ -18,6 +18,7 @@
 @  add the rest.
 
 #include "rpi-asm.h"
+#include "equiv-checker-util.h"
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @  
@@ -259,6 +260,7 @@ MK_FN(syscall_trampoline)
     pop {lr}
     bx lr
 
+EQUIV_USER_ASM
 
 .global vibe_check
 .global secure_vibes

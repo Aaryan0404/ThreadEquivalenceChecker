@@ -12,6 +12,7 @@ int* global_var;
 int* global_var2;
 
 // multiply by 4 and add 1
+EQUIV_USER
 void funcMA(void **arg) {
     int a = *global_var;
     a += 1; 
@@ -23,6 +24,7 @@ void funcMA(void **arg) {
 }
 
 // subtracts 1 from global var a
+EQUIV_USER
 void funcMS(void **arg) {
     int a = *global_var2; 
     a *= 2;
@@ -60,6 +62,6 @@ void notmain() {
     executables[1].func_addr = (func_ptr)funcMS;
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-    // run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
-    run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    //run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
 }

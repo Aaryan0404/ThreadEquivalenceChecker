@@ -13,6 +13,7 @@ int* global_var2;
 int** global_var3;
 
 // multiply by 4 and add 1
+EQUIV_USER
 void funcMA(void **arg) {
     int a = *global_var;
     a += 1; 
@@ -24,6 +25,7 @@ void funcMA(void **arg) {
 }
 
 // subtracts 1 from global var a
+EQUIV_USER
 void funcMS(void **arg) {
     int a = *global_var2; 
     a *= 2;
@@ -35,6 +37,7 @@ void funcMS(void **arg) {
 }
 
 // set all elements of global_var3 to global_var
+EQUIV_USER
 void funcIndep(void **arg) {
     for (int i = 0; i < 3; i++) {
         *global_var3[i] = *global_var;

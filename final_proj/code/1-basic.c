@@ -2,6 +2,7 @@
 #include "permutations.h"
 #include "interleaver.h"
 #include "equiv-checker.h"
+#include "equiv-rw-set.h"
 
 #define NUM_VARS 1
 #define NUM_FUNCS 2
@@ -28,11 +29,15 @@ void funcMS(void **arg) {
 
 void notmain() {    
     equiv_checker_init();
+
     // number of interleaved context switches (remaining context switches will result in threads being run to completion)
     int interleaved_ncs = 1; 
 
     global_var = kmalloc(sizeof(int));
     *global_var = 5;
+
+    //find_rw_set(funcMS);
+    //find_rw_set(funcMA);
 
     // convert global vars to an array of pointers
     int *mem_locations[NUM_VARS] = {global_var};

@@ -302,6 +302,7 @@ int is_load_or_store(uint32_t instr){
 
 // just print out the pc and instruction count.
 static void equiv_hash_handler(void *data, step_fault_t *s) {
+    rw_tracker_arm();
     gcc_mb();
     let th = cur_thread;
     assert(th);
@@ -343,7 +344,7 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
         equiv_schedule();
     }
 
-    rw_tracker_arm();
+    
 }
 
 // run all the threads.
@@ -377,7 +378,6 @@ void equiv_init(void) {
     if(init)
         return;
     //kmalloc_init();
-    mini_step_init(equiv_hash_handler, 0);
-    rw_tracker_init(1);
+    mini_step_init(equiv_hash_handler, 0); 
     full_except_set_syscall(equiv_syscall_handler); 
 }
