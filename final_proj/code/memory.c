@@ -47,3 +47,26 @@ void print_memstate(memory_segments* memory_state){
         printk("marked memory %d value: %d\n", j, *((int *)memory_state->ptr_list[j]));
     }
 }
+
+
+void print_mem_value(uint32_t v, void* arg) {
+  printk("\t%x : %x\n", v, *((volatile char*)v));
+}
+
+void print_mem(const char* msg, set_t* mem) {
+  if(msg) printk(msg);
+  set_foreach(mem, print_mem_value, NULL);
+  printk("\tHash: %x\n", hash_mem(mem));
+}
+
+void hash_mem_value(uint32_t v, void* arg) {
+  XXH32_state_t* state = (XXH32_state_t*)arg;
+  XXH32_update(state, (char*)v, 1);
+}
+
+uint32_t hash_mem(set_t* mem) {
+  XXH32_state_t* state = XXH32_createState();
+  set_foreach(mem, hash_mem_value, state);
+  XXH32_hash_t hash = XXH32_digest(state);
+  return hash;
+}

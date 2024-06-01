@@ -13,6 +13,19 @@ typedef struct {
 
 void set_verbosity(int v);
 
+// New
+
+typedef void (*init_memory_func)();
+
+void find_good_hashes_2(
+    function_exec* executables, size_t n_funcs,
+    init_memory_func init,
+    int** itl, size_t n_perms,
+    set_t* shared_memory, set_t* valid_hashes
+);
+
+// Old
+
 void reset_threads(eq_th_t **thread_arr, size_t num_threads);
 size_t init_threads(eq_th_t **thread_arr, function_exec* executables, int **itl, size_t num_funcs, int *num_instrs);
 

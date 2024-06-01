@@ -3,6 +3,7 @@
 #include "interleaver.h"
 #include "equiv-checker.h"
 #include "equiv-rw-set.h"
+#include "memory.h"
 
 #define NUM_VARS 1
 #define NUM_FUNCS 2
@@ -22,11 +23,13 @@ void funcMA(void **arg) {
 // subtracts 1 from global var a
 EQUIV_USER
 void funcMS(void **arg) {
-    asm volatile("push {r5,r6}" : : : "memory");
     int a = *global_var;
     a *= 2;
     *global_var = a;
-    asm volatile("pop {r5,r6}" : : : "memory");
+}
+
+void init_memory() {
+  *global_var = 5;
 }
 
 void notmain() {    
@@ -59,8 +62,6 @@ void notmain() {
     set_union_inplace(shared_memory, ms_read_set);
     set_union_inplace(shared_memory, ma_read_set);
 
-    set_print("Shared Memory\n", shared_memory);
-    printk("Address of global %x\n", global_var);
 
     // convert global vars to an array of pointers
     int *mem_locations[NUM_VARS] = {global_var};
@@ -76,6 +77,16 @@ void notmain() {
     function_exec *executables = kmalloc(NUM_FUNCS * sizeof(function_exec));
     executables[0].func_addr = (func_ptr)funcMA;
     executables[1].func_addr = (func_ptr)funcMS;
+
+    set_t* vh = set_alloc();
+    find_good_hashes_2(
+      executables, NUM_FUNCS,
+      init_memory,
+      itl, num_perms,
+      shared_memory,vh 
+    );
+
+    set_print("Valid hashes\n", vh);
 
     find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
     run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
