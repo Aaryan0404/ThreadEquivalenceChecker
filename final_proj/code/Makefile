@@ -1,5 +1,6 @@
 # PROGS += state-space.c
-PROGS += 1-basic.c
+PROGS += set-test.c
+# PROGS += 1-basic.c
 # PROGS += 1-debug.c
 # PROGS += 2-multivar.c 
 # PROGS += 3-multifunc.c 
@@ -22,6 +23,8 @@ COMMON_SRC += staff-full-except.c
 COMMON_SRC += equiv-rw-set.c
 
 COMMON_SRC += equiv-malloc.c
+
+COMMON_SRC += set.c
 
 COMMON_SRC += equiv-mmu.c
 COMMON_SRC += equiv-pt.c

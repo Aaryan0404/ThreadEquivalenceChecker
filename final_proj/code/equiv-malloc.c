@@ -584,7 +584,7 @@ void dump_block(header_ptr header) {
  * tracing through programs.  It prints out the total range of the heap, and
  * information about each block within it.
  */
-void dump_heap() {
+void equiv_dump_heap() {
   header_ptr current_block = heap.base;
   printk("--- Heap ---\n");
   printk("Expected Size: %d bytes\n", heap.size);
