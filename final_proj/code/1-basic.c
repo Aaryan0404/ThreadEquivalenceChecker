@@ -22,9 +22,11 @@ void funcMA(void **arg) {
 // subtracts 1 from global var a
 EQUIV_USER
 void funcMS(void **arg) {
+    asm volatile("push {r5,r6}" : : : "memory");
     int a = *global_var;
     a *= 2;
     *global_var = a;
+    asm volatile("pop {r5,r6}" : : : "memory");
 }
 
 void notmain() {    
@@ -36,8 +38,29 @@ void notmain() {
     global_var = kmalloc(sizeof(int));
     *global_var = 5;
 
-    //find_rw_set(funcMS);
-    //find_rw_set(funcMA);
+    set_t* ms_read_set = set_alloc();
+    set_t* ms_write_set = set_alloc();
+
+    find_rw_set(funcMS, ms_read_set, ms_write_set);
+    set_print("MS read set\n", ms_read_set);
+    set_print("MS write set\n", ms_write_set);
+
+    set_t* ma_read_set = set_alloc();
+    set_t* ma_write_set = set_alloc();
+
+    find_rw_set(funcMA, ma_read_set, ma_write_set);
+    set_print("MA read set\n", ma_read_set);
+    set_print("MA write set\n", ma_write_set);
+
+    set_t* shared_memory = set_alloc();
+    set_intersection_inplace(ms_read_set, ma_write_set);
+    set_intersection_inplace(ma_read_set, ms_write_set);
+    set_intersection(shared_memory, ms_write_set, ma_write_set);
+    set_union_inplace(shared_memory, ms_read_set);
+    set_union_inplace(shared_memory, ma_read_set);
+
+    set_print("Shared Memory\n", shared_memory);
+    printk("Address of global %x\n", global_var);
 
     // convert global vars to an array of pointers
     int *mem_locations[NUM_VARS] = {global_var};

@@ -8,6 +8,8 @@
 
 static uint32_t rw_tracker_enabled;
 
+static rw_tracker_t current_tracker;
+
 static void rw_tracker_data_abort_handler(regs_t* r) {
   uint32_t addr = cp15_far_get();
   uint32_t pc = r->regs[REGS_PC];
@@ -18,12 +20,83 @@ static void rw_tracker_data_abort_handler(regs_t* r) {
   demand(status == 0b01101, only section permission faults expected);
   uint32_t domain = bits_get(dfsr, 4, 7);
   demand(domain != user_dom, we should never fault when accessing the user domain);
+
+  // Read/write bit is stored here in addition to the instruction but this is
+  // much more consistent
   uint32_t w = bit_isset(dfsr, 11);
+  set_t* destination_set;
+  if(w) destination_set = current_tracker.write;
+  else destination_set = current_tracker.read;
 
-  if(w) printk("instruction %x writes to %x\n", pc, addr);
-  else printk("instruction %x reads from %x\n", pc, addr);
+  /* 
+   * Now the challenge! Figure out WHICH BYTES this access actually touched...
+   */
 
-  // TODO: Here is where we'd maintain a read and write set
+  // Luckily, the address mode computations are already factored into the
+  // address that triggered the data abort
+
+  uint32_t instruction = GET32(pc);
+
+  // TODO: Alignment?????
+
+  // A3-22 : Load/store word or unsigned byte
+  if(bits_get(instruction, 26, 27) == 0b01) {
+    // A3-22 : B == 1 means byte
+    if(bit_isset(instruction, 22)) {
+      set_insert(destination_set, addr);
+    } else {
+      for(int i = 0; i < 4; i++)
+        set_insert(destination_set, addr + i);
+    }
+  }
+
+  // A3-23 : Load/store halfword, double word, or signed byte
+  if(bits_get(instruction, 25, 27) == 0b000) {
+    // Ugh
+    uint32_t l = bit_isset(instruction, 20);
+    uint32_t sh = bits_get(instruction, 5, 6);
+    uint32_t lsh = (l << 2) | sh;
+    // A5-34
+    switch(lsh) {
+      // Store halfword
+      case 0b001:
+      // Load signed half word
+      case 0b111:
+      // Load unsigned halfword
+      case 0b101:
+        set_insert(destination_set, addr);
+        set_insert(destination_set, addr + 1);
+        break;
+      // Load double word
+      case 0b010:
+      // Store double word
+      case 0b011:
+        for(int i = 0; i < 8; i++)
+          set_insert(destination_set, addr + i);
+        break;
+      // Load signed byte
+      case 0b110:
+        set_insert(destination_set, addr);
+        break;
+      default:
+        panic("Unexpected LSH combination\n");
+    }
+  }
+
+  // A3-26 : Load/store multiple
+  if(bits_get(instruction, 25, 27) == 0b100) {
+    // Weakness - assumes that the LDM/STM traps for ALL accessed data, not
+    // only some of the accesses
+    uint32_t register_list = bits_get(instruction, 0, 15);
+    uint32_t offset = 0;
+    for(int i = 0; i < 16; i++) {
+      if((register_list >> i) & 0x1) {
+        for(int j = 0; j < 4; j++)
+          set_insert(destination_set, addr + offset + j);
+        offset += 4;
+      }
+    }
+  }
 
   // Disable data aborts
   rw_tracker_disarm();
@@ -56,14 +129,21 @@ void rw_tracker_arm() { if(rw_tracker_enabled) set_data_faults(1); }
 // Always disarms
 void rw_tracker_disarm() { set_data_faults(0); }
 
+void set_tracker(rw_tracker_t tracker) { current_tracker = tracker; }
 
 // Finds read and write sets for a function
-void find_rw_set(func_ptr exe) {
+void find_rw_set(func_ptr exe, set_t* read, set_t* write) {
   // Initialize single stepping & threads
   equiv_init();
 
   // Disable context switching
   disable_ctx_switch();
+
+  rw_tracker_t tracker = {
+    .read = read,
+    .write = write
+  };
+  current_tracker = tracker;
 
   // Enable the RW tracker
   rw_tracker_enable();

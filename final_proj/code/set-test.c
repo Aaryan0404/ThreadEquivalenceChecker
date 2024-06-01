@@ -12,7 +12,7 @@ void notmain() {
 
   //caches_enable();
 
-  set_t* s = set_alloc(MAX_OFFSET);
+  set_t* s = set_alloc_offset(MAX_OFFSET);
 
   set_insert(s, 0x1);
   set_insert(s, 0x2);
@@ -27,34 +27,34 @@ void notmain() {
 
   printk("\nTesting unions....\n");
 
-  set_t* x = set_alloc(MAX_OFFSET);
+  set_t* x = set_alloc_offset(MAX_OFFSET);
   set_insert(x, 0x1);
   set_insert(x, 0x2);
   set_print("Set X\n", x);
 
   printk("\n");
 
-  set_t* y = set_alloc(MAX_OFFSET);
+  set_t* y = set_alloc_offset(MAX_OFFSET);
   set_insert(y, 0x10001);
   set_insert(y, 0x1000002);
   set_print("Set Y\n", y);
 
   printk("\n");
 
-  set_t* z = set_alloc(MAX_OFFSET);
+  set_t* z = set_alloc_offset(MAX_OFFSET);
   set_union(z, x, y);
   set_print("X U Y\n", z);
 
   printk("\nTesting inplace unions....\n");
 
-  set_t* a = set_alloc(MAX_OFFSET);
+  set_t* a = set_alloc_offset(MAX_OFFSET);
   set_insert(a, 0x1);
   set_insert(a, 0x2);
   set_print("Set A\n", a);
 
   printk("\n");
 
-  set_t* b = set_alloc(MAX_OFFSET);
+  set_t* b = set_alloc_offset(MAX_OFFSET);
   set_insert(b, 0x10001);
   set_insert(b, 0x1000002);
   set_print("Set B\n", b);
@@ -66,34 +66,34 @@ void notmain() {
 
   printk("\nTesting intersection....\n");
 
-  a = set_alloc(MAX_OFFSET);
+  a = set_alloc_offset(MAX_OFFSET);
   set_insert(a, 0x1);
   set_insert(a, 0x2);
   set_print("Set A\n", a);
 
   printk("\n");
 
-  b = set_alloc(MAX_OFFSET);
+  b = set_alloc_offset(MAX_OFFSET);
   set_insert(b, 0x2);
   set_insert(b, 0x3);
   set_print("Set B\n", b);
 
   printk("\n");
 
-  set_t* c = set_alloc(MAX_OFFSET);
+  set_t* c = set_alloc_offset(MAX_OFFSET);
   set_intersection(c, a, b);
   set_print("A & B\n", c);
 
   printk("\nTesting inplace intersection....\n");
 
-  a = set_alloc(MAX_OFFSET);
+  a = set_alloc_offset(MAX_OFFSET);
   set_insert(a, 0x1);
   set_insert(a, 0x2);
   set_print("Set A\n", a);
 
   printk("\n");
 
-  b = set_alloc(MAX_OFFSET);
+  b = set_alloc_offset(MAX_OFFSET);
   set_insert(b, 0x2);
   set_insert(b, 0x3);
   set_print("Set B\n", b);

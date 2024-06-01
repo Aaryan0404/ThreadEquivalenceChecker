@@ -18,9 +18,14 @@ typedef struct set_t {
 } set_t;
 
 /*
- * Allocates an empty set.
+ * Allocates an empty set with a specific offset
  */
-set_t* set_alloc(uint32_t offset);
+set_t* set_alloc_offset(uint32_t offset);
+
+/*
+ * Allocates an empty set with the maximum (default) offset
+ */
+set_t* set_alloc();
 
 /*
  * Frees a set
@@ -36,6 +41,16 @@ void set_mk(set_t* s, uint32_t offset);
  * Prints a set in-order
  */
 void set_print(const char* msg, set_t* s);
+
+typedef void (*set_handler_t)(uint32_t v, void* arg);
+
+/*
+ * Calls handler for each element of a set. Returns number of times handler was
+ * called.
+ *
+ * NOTE: handler is called in ascending order of value
+ */
+uint32_t set_foreach(set_t* s, set_handler_t handler, void* arg);
 
 /*
  * Copies a set. Makes no assumptions about destination.

@@ -239,14 +239,17 @@ static inline regs_t equiv_regs_init(eq_th_t *p) {
     return regs;
 }
 
+static unsigned ntids = 1;
+
+void reset_ntids() { ntids = 1; }
+
 // fork <fn(arg)> as a pre-emptive thread.
 eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash) {
     eq_th_t *th = kmalloc_aligned(stack_size, 8);
 
     assert((uint32_t)th%8==0);
     th->expected_hash = expected_hash;
-
-    static unsigned ntids = 1;
+    
     th->tid = ntids++;
 
     th->fn = (uint32_t)fn;

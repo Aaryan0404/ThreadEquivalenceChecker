@@ -8,11 +8,15 @@ void set_mk(set_t* s, uint32_t offset) {
   for(int i = 0; i < 32; i++) s->children[i] = NULL;
 }
 
-set_t* set_alloc(uint32_t offset) {
+set_t* set_alloc_offset(uint32_t offset) {
   set_t* s = (set_t*)equiv_malloc(sizeof(set_t));
   if(s == NULL) panic("set allocation failed!");
   set_mk(s, offset);
   return s;
+}
+
+set_t* set_alloc() {
+  return set_alloc_offset(MAX_OFFSET);
 }
 
 /*
@@ -22,27 +26,38 @@ static inline uint32_t mask_has(uint32_t mask, uint32_t bit) {
   return mask & (1 << bit);
 }
 
-void set_print_recurse(set_t* s, uint32_t prefix) {
+void print_el(uint32_t v, void* arg) {
+  printk("\t%x\n", v);
+}
+
+void set_print(const char* msg, set_t* s) {
+  if(msg) printk(msg);
+
+  set_foreach(s, print_el, NULL);
+}
+
+uint32_t set_foreach_recurse(set_t* s, set_handler_t handler, void* arg, uint32_t prefix) {
+  uint32_t n = 0;
   if(s->offset > 0) {
     for(int i = 0; i < 32; i++) {
       if(mask_has(s->mask, i)) {
-        set_print_recurse(s->children[i], (prefix << 5) | i);
+        n += set_foreach_recurse(s->children[i], handler, arg, (prefix << 5) | i);
       }
     }
   } else {
     for(int i = 0; i < 32; i++) {
       if(mask_has(s->mask, i)) {
         uint32_t v = (prefix << 5) | i;
-        printk("\t%x\n", v);
+        handler(v, arg);
+        n++;
       }
     }
   }
+  return n;
 }
 
-void set_print(const char* msg, set_t* s) {
-  if(msg) printk(msg);
-
-  set_print_recurse(s, 0);
+uint32_t set_foreach(set_t* s, set_handler_t handler, void* arg) {
+  return set_foreach_recurse(s, handler, arg, 0);
 }
 
 void set_free(set_t* s) {
@@ -59,7 +74,7 @@ void set_copy(set_t* dst, set_t* src) {
     for(int i = 0; i < 32; i++) {
       uint32_t bit = 0x1 << i;
       if(src->mask & bit) {
-        dst->children[i] = set_alloc(src->offset - 5);
+        dst->children[i] = set_alloc_offset(src->offset - 5);
         set_copy(dst->children[i], src->children[i]);
       }
     }
@@ -78,7 +93,7 @@ uint32_t set_insert(set_t* s, uint32_t v) {
   if(s->offset > 0) {
     // If the child doesn't exist, make it
     if(!present) {
-      s->children[index] = set_alloc(s->offset - 5);
+      s->children[index] = set_alloc_offset(s->offset - 5);
     }
     return set_insert(s->children[index], v);
   }
@@ -114,13 +129,13 @@ void set_union(set_t* z, set_t* x, set_t* y) {
   for(int i = 0; i < 32; i++) {
     if(mask_has(both_present, i)) {
       // Make the child
-      z->children[i] = set_alloc(z->offset - 5);
+      z->children[i] = set_alloc_offset(z->offset - 5);
 
       // Recursively call union
       set_union(z->children[i], x->children[i], y->children[i]);
     } else if(mask_has(at_least_one_present, i)) {
       // Make the child
-      z->children[i] = set_alloc(z->offset - 5);
+      z->children[i] = set_alloc_offset(z->offset - 5);
 
       // Just take the one that is present
       if(mask_has(x->mask, i)) {
@@ -146,7 +161,7 @@ void set_union_inplace(set_t* y, set_t* x) {
       set_union_inplace(y->children[i], x->children[i]);
     } else if(mask_has(x->mask, i)) {
       // Y must not have the bit
-      y->children[i] = set_alloc(x->offset - 5);
+      y->children[i] = set_alloc_offset(x->offset - 5);
       set_copy(y->children[i], x->children[i]);
     }
   }
@@ -162,7 +177,7 @@ void set_intersection(set_t* z, set_t* x, set_t* y) {
 
   for(int i = 0; i < 32; i++) {
     if(mask_has(both_present, i)) {
-      z->children[i] = set_alloc(x->offset - 5);
+      z->children[i] = set_alloc_offset(x->offset - 5);
       set_intersection(z->children[i], x->children[i], y->children[i]);
     }
   }
@@ -185,7 +200,7 @@ void set_intersection_inplace(set_t* y, set_t* x) {
       y->children[i] = NULL;
     // Copy children present in x but not in y
     } else if(mask_has(only_x, i)) {
-      y->children[i] = set_alloc(y->offset - 5);
+      y->children[i] = set_alloc_offset(y->offset - 5);
       set_copy(y->children[i], x->children[i]);
     // Recurse on shared children
     } else if(mask_has(both_present, i)) {
