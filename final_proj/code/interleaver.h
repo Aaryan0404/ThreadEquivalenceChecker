@@ -24,6 +24,11 @@ void find_good_hashes_2(
     set_t* shared_memory, set_t* valid_hashes
 );
 
+void find_shared_memory(
+    function_exec* executables, size_t n_funcs,
+    set_t* shared_memory
+);
+
 // Old
 
 void reset_threads(eq_th_t **thread_arr, size_t num_threads);

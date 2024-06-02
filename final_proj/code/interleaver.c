@@ -1,6 +1,8 @@
 #include "interleaver.h"
 #include <stdbool.h>
 #include "rpi.h"
+#include "equiv-malloc.h"
+#include "equiv-rw-set.h"
 
 int verbose = 3;
 
@@ -37,6 +39,57 @@ void find_good_hashes_2(
       }
       printk("\n");
     }
+  }
+}
+
+void find_shared_memory(
+    function_exec* executables, size_t n_funcs,
+    set_t* shared_memory
+) {
+  // Allocate read & write sets & compute them
+  set_t** read_sets = equiv_malloc(sizeof(set_t*) * n_funcs);
+  set_t** write_sets = equiv_malloc(sizeof(set_t*) * n_funcs);
+  for(size_t i = 0; i < n_funcs; i++) {
+    read_sets[i] = set_alloc();
+    write_sets[i] = set_alloc();
+
+    find_rw_set(executables[i].func_addr, read_sets[i], write_sets[i]);
+
+    if(verbose >= 1) {
+      printk("Read set #%d\n", i);
+      set_print(NULL, read_sets[i]);
+      printk("Write set #%d\n", i);
+      set_print(NULL, write_sets[i]);
+    }
+  }
+
+
+  for(size_t i = 0; i < n_funcs; i++) {
+    for(size_t j = 0; j < n_funcs; j++) {
+      if(i == j) continue;
+
+      set_t* tmp = set_alloc();
+
+      set_intersection(tmp, read_sets[i], write_sets[j]);
+      set_union_inplace(shared_memory, tmp);
+
+      set_free(tmp);
+    }
+  }
+
+  for(size_t i = 0; i < n_funcs; i++) {
+    for(size_t j = i+1; j < n_funcs; j++) {
+      set_t* tmp = set_alloc();
+
+      set_intersection(tmp, read_sets[i], write_sets[j]);
+      set_union_inplace(shared_memory, tmp);
+
+      set_free(tmp);
+    }
+  }
+
+  if(verbose >= 1) {
+    set_print("Shared memory: \n", shared_memory);
   }
 }
 

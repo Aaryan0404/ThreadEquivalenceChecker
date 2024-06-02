@@ -31,6 +31,12 @@ typedef struct eq_th {
     unsigned verbose_p;  // if you want alot of information.
 } eq_th_t;
 
+enum {
+    EQUIV_EXIT = 0,
+    EQUIV_PUTC = 1,
+    EQUIV_SWITCH = 2
+};
+
 typedef void (*equiv_fn_t)(void*);
 
 void set_ctx_switches(uint32_t* tid, uint32_t* n, uint32_t num_context_switches);
@@ -38,6 +44,8 @@ void set_ctx_switches(uint32_t* tid, uint32_t* n, uint32_t num_context_switches)
 // a very heavy handed initialization just for today's lab.
 // assumes it has total control of system calls etc.
 void equiv_init(void);
+
+void reset_ntids();
 
 eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash);
 

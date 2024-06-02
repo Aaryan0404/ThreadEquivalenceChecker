@@ -42,15 +42,19 @@ void set_mk(set_t* s, uint32_t offset);
  */
 void set_print(const char* msg, set_t* s);
 
-typedef void (*set_handler_t)(uint32_t v, void* arg);
-
 /*
  * Calls handler for each element of a set. Returns number of times handler was
  * called.
  *
  * NOTE: handler is called in ascending order of value
  */
+typedef void (*set_handler_t)(uint32_t v, void* arg);
 uint32_t set_foreach(set_t* s, set_handler_t handler, void* arg);
+
+/*
+ * Returns 1 if set is empty, 0 otherwise
+ */
+uint32_t set_empty(set_t* set);
 
 /*
  * Copies a set. Makes no assumptions about destination.
@@ -67,6 +71,11 @@ uint32_t set_insert(set_t* s, uint32_t v);
  * Looks up v in s. Returns 1 if set contains v, 0 otherwise.
  */
 uint32_t set_lookup(set_t* s, uint32_t v);
+
+/*
+ * Gets the set of the cardinality
+ */
+uint32_t set_cardinality(set_t* s);
 
 void set_union(set_t* z, set_t* x, set_t* y);
 void set_union_inplace(set_t* y, set_t* x);

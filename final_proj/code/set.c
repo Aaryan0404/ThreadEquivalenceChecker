@@ -60,6 +60,11 @@ uint32_t set_foreach(set_t* s, set_handler_t handler, void* arg) {
   return set_foreach_recurse(s, handler, arg, 0);
 }
 
+uint32_t set_empty(set_t* s) {
+  if(s->mask == 0) return 1;
+  else return 0;
+}
+
 void set_free(set_t* s) {
   for(int i = 0; i < 32; i++) {
     if(s->children[i] != NULL) set_free(s->children[i]);
@@ -115,6 +120,12 @@ uint32_t set_lookup(set_t* s, uint32_t v) {
 
   // Otherwise recurse
   return set_lookup(s->children[index], v);
+}
+
+void set_cardinality_el(uint32_t v, void* arg) {}
+
+uint32_t set_cardinality(set_t* s) {
+  return set_foreach(s, set_cardinality_el, NULL);
 }
 
 void set_union(set_t* z, set_t* x, set_t* y) {

@@ -10,33 +10,7 @@ static uint32_t rw_tracker_enabled;
 
 static rw_tracker_t current_tracker;
 
-static void rw_tracker_data_abort_handler(regs_t* r) {
-  uint32_t addr = cp15_far_get();
-  uint32_t pc = r->regs[REGS_PC];
-  uint32_t dfsr = cp15_dfsr_get();
-
-  // Parse DFSR according to B4-43
-  uint32_t status = (bit_isset(dfsr, 10) << 4) | bits_get(dfsr, 0, 3);
-  demand(status == 0b01101, only section permission faults expected);
-  uint32_t domain = bits_get(dfsr, 4, 7);
-  demand(domain != user_dom, we should never fault when accessing the user domain);
-
-  // Read/write bit is stored here in addition to the instruction but this is
-  // much more consistent
-  uint32_t w = bit_isset(dfsr, 11);
-  set_t* destination_set;
-  if(w) destination_set = current_tracker.write;
-  else destination_set = current_tracker.read;
-
-  /* 
-   * Now the challenge! Figure out WHICH BYTES this access actually touched...
-   */
-
-  // Luckily, the address mode computations are already factored into the
-  // address that triggered the data abort
-
-  uint32_t instruction = GET32(pc);
-
+static void get_touched_bytes(uint32_t instruction, uint32_t addr, set_t* destination_set) {
   // TODO: Alignment?????
 
   // A3-22 : Load/store word or unsigned byte
@@ -97,6 +71,39 @@ static void rw_tracker_data_abort_handler(regs_t* r) {
       }
     }
   }
+}
+
+static void rw_tracker_data_abort_handler(regs_t* r) {
+  uint32_t addr = cp15_far_get();
+  uint32_t pc = r->regs[REGS_PC];
+  uint32_t dfsr = cp15_dfsr_get();
+
+  // Parse DFSR according to B4-43
+  uint32_t status = (bit_isset(dfsr, 10) << 4) | bits_get(dfsr, 0, 3);
+  demand(status == 0b01101, only section permission faults expected);
+  uint32_t domain = bits_get(dfsr, 4, 7);
+  demand(domain != user_dom, we should never fault when accessing the user domain);
+
+  // Read/write bit is stored here in addition to the instruction but this is
+  // much more consistent
+  uint32_t w = bit_isset(dfsr, 11);
+
+  // Compute set of touched bytes
+  set_t* touched = set_alloc();
+  uint32_t instruction = GET32(pc);
+  get_touched_bytes(instruction, addr, touched);
+
+  // Store R/W addresses
+  if(current_tracker.write && w)      set_union_inplace(current_tracker.write, touched);
+  else if(current_tracker.read && !w)  set_union_inplace(current_tracker.read, touched);
+
+  // Handle flagged PCs now that we don't need touched anymore
+  if(current_tracker.shared_memory && current_tracker.flagged_pcs) {
+    set_intersection_inplace(touched, current_tracker.shared_memory);
+    if(!set_empty(touched)) {
+      set_insert(current_tracker.flagged_pcs, pc);
+    }
+  }
 
   // Disable data aborts
   rw_tracker_disarm();
@@ -108,8 +115,13 @@ void rw_tracker_init(uint32_t enabled) {
   rw_tracker_enabled = enabled;
 }
 
-void rw_tracker_enable() { rw_tracker_enabled = 1; }
-void rw_tracker_disable() { rw_tracker_enabled = 0; }
+void rw_tracker_enable() { 
+  rw_tracker_enabled = 1;
+}
+void rw_tracker_disable() {
+  rw_tracker_disarm();
+  rw_tracker_enabled = 0;
+}
 
 void set_data_faults(uint32_t enable) {
   uint32_t domain_acl = domain_access_ctrl_get();
@@ -131,7 +143,6 @@ void rw_tracker_disarm() { set_data_faults(0); }
 
 void set_tracker(rw_tracker_t tracker) { current_tracker = tracker; }
 
-// Finds read and write sets for a function
 void find_rw_set(func_ptr exe, set_t* read, set_t* write) {
   // Initialize single stepping & threads
   equiv_init();
@@ -139,11 +150,7 @@ void find_rw_set(func_ptr exe, set_t* read, set_t* write) {
   // Disable context switching
   disable_ctx_switch();
 
-  rw_tracker_t tracker = {
-    .read = read,
-    .write = write
-  };
-  current_tracker = tracker;
+  current_tracker = rw_tracker_mk(read, write);
 
   // Enable the RW tracker
   rw_tracker_enable();
@@ -154,5 +161,30 @@ void find_rw_set(func_ptr exe, set_t* read, set_t* write) {
 
   // Clean up
   rw_tracker_disable();
+  reset_ntids();
 }
 
+void find_pc_set(func_ptr exe, set_t* shared_memory, set_t* pcs) {
+  // Initialize single stepping & threads
+  equiv_init();
+
+  // Disable context switching
+  disable_ctx_switch();
+
+  current_tracker = pc_tracker_mk(shared_memory, pcs);
+
+  // Enable the RW tracker
+  rw_tracker_enable();
+
+  // Run our function
+  eq_th_t* t = equiv_fork(exe, NULL, 0);
+  equiv_run();
+
+  // Clean up
+  rw_tracker_disable();
+  reset_ntids();
+}
+
+
+
+// Finds

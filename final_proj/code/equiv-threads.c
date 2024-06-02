@@ -119,12 +119,6 @@ void equiv_schedule(void)
  */
 int syscall_trampoline(int sysnum, ...);
 
-enum {
-    EQUIV_EXIT = 0,
-    EQUIV_PUTC = 1,
-    EQUIV_SWITCH = 2
-};
-
 // page A3-2
 enum {
     LS_IMMEDIATE_OFFSET = 0b010,
@@ -241,7 +235,10 @@ static inline regs_t equiv_regs_init(eq_th_t *p) {
 
 static unsigned ntids = 1;
 
-void reset_ntids() { ntids = 1; }
+void reset_ntids() {
+  assert(eq_empty(&equiv_runq));
+  ntids = 1;
+}
 
 // fork <fn(arg)> as a pre-emptive thread.
 eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash) {
