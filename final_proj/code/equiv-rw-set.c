@@ -73,6 +73,13 @@ static void get_touched_bytes(uint32_t instruction, uint32_t addr, set_t* destin
   }
 }
 
+typedef void (*ctx_switch)(set_t* shared_memory); 
+static ctx_switch ctx_switch_func;
+
+static void set_to_ctx_switch(ctx_switch func) {
+  ctx_switch_func = func;
+} 
+
 static void rw_tracker_data_abort_handler(regs_t* r) {
   uint32_t addr = cp15_far_get();
   uint32_t pc = r->regs[REGS_PC];
@@ -92,6 +99,10 @@ static void rw_tracker_data_abort_handler(regs_t* r) {
   set_t* touched = set_alloc();
   uint32_t instruction = GET32(pc);
   get_touched_bytes(instruction, addr, touched);
+
+  if (ctx_switch_func) {
+    ctx_switch_func(touched); 
+  }
 
   // Store R/W addresses
   if(current_tracker.write && w)      set_union_inplace(current_tracker.write, touched);

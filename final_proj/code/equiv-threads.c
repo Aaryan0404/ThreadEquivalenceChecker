@@ -72,6 +72,29 @@ eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
     return th;
 }
 
+static set_t *shared_memory;
+static num_instrs_executed = 0;
+
+static void ctx_switch_handler(set_t *touched_memory) {
+    // find intersection of shared memory and touched memory
+    set_t *intersection = set_alloc();
+    set_intersection(intersection, shared_memory, touched_memory);
+
+    // if the intersection is non-empty
+    if (!set_empty(intersection)) {
+        // increment 
+        num_instrs_executed++;
+
+        if (num_instrs_executed >= ctx_switch_instr_num[ctx_switch_idx]) {
+            ctx_switch_idx++;
+            num_instrs_executed = 0;
+
+            // context switch
+            equiv_schedule();
+        }
+    }
+}
+
 /********************************************************************
  * create threads: this is roughly the code from mini-step and the 
  * test.
@@ -282,23 +305,6 @@ void equiv_refresh(eq_th_t *th) {
     eq_push(&equiv_runq, th);
 }
 
-int is_load_or_store(uint32_t instr){
-    // if load
-    if(((instr >> 25) & 0b111) == LS_IMMEDIATE_OFFSET  || ((instr >> 25) & 0b111) == LS_MULTIPLE){
-        return 1;
-    }
-    // multiple instructions so check bit 4 too
-    if((((instr >> 25) & 0b111) == LS_REGISTER_OFFSET) && (((instr >> 4) & 0b1) == 1)){
-        return 1;
-    }
-    // many instructions so check other bits based off page A3-39
-    // based on page A3-35 this will also capture some multiply instructions but oh well
-    if(((instr >> 25 & 0b111) == 0) && (instr >> 7 & 0b1) && (instr >> 4 & 0b1)){
-        return 1;
-    }
-    return 0;
-}
-
 
 // just print out the pc and instruction count.
 static void equiv_hash_handler(void *data, step_fault_t *s) {
@@ -343,8 +349,6 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
         ctx_switch_idx++;
         equiv_schedule();
     }
-
-    
 }
 
 // run all the threads.
@@ -369,6 +373,8 @@ void equiv_run(void) {
     switchto_cswitch(&start_regs, &cur_thread->regs);
     mismatch_off();
     //trace("done, returning\n");
+
+    // reset the context switch index
 }
 
 
