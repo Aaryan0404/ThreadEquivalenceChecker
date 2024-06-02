@@ -1,12 +1,99 @@
 #include "interleaver.h"
 #include <stdbool.h>
 #include "rpi.h"
+#include "equiv-malloc.h"
+#include "equiv-rw-set.h"
 
 int verbose = 3;
 
 void set_verbosity(int v){
     verbose = v;
 }
+
+// NEW
+
+void find_good_hashes_2(
+    function_exec* executables, size_t n_funcs,
+    init_memory_func init,
+    int** itl, size_t n_perms,
+    set_t* shared_memory, set_t* valid_hashes
+) {
+  if(verbose >= 1){
+    printk("Finding valid end states\n");
+  }
+  for(size_t i = 0; i < n_perms; i++) {
+    init();
+
+    // Run (no need for single stepping)
+    for (size_t j = 0; j < n_funcs; j++) {
+      // run func for this permutation with the corresponding variables
+      executables[itl[i][j]].func_addr(executables[itl[i][j]].var_list);
+    }
+
+    uint32_t hash = hash_mem(shared_memory);
+    if(!set_insert(valid_hashes, hash) && verbose >= 1) {
+      print_mem("Valid state found: \n", shared_memory);
+      printk("\tPermutation: ");
+      for(size_t j = 0; j < n_funcs; j++) {
+        printk("%d ", itl[i][j]);
+      }
+      printk("\n");
+    }
+  }
+}
+
+void find_shared_memory(
+    function_exec* executables, size_t n_funcs,
+    set_t* shared_memory
+) {
+  // Allocate read & write sets & compute them
+  set_t** read_sets = equiv_malloc(sizeof(set_t*) * n_funcs);
+  set_t** write_sets = equiv_malloc(sizeof(set_t*) * n_funcs);
+  for(size_t i = 0; i < n_funcs; i++) {
+    read_sets[i] = set_alloc();
+    write_sets[i] = set_alloc();
+
+    find_rw_set(executables[i].func_addr, read_sets[i], write_sets[i]);
+
+    if(verbose >= 1) {
+      printk("Read set #%d\n", i);
+      set_print(NULL, read_sets[i]);
+      printk("Write set #%d\n", i);
+      set_print(NULL, write_sets[i]);
+    }
+  }
+
+
+  for(size_t i = 0; i < n_funcs; i++) {
+    for(size_t j = 0; j < n_funcs; j++) {
+      if(i == j) continue;
+
+      set_t* tmp = set_alloc();
+
+      set_intersection(tmp, read_sets[i], write_sets[j]);
+      set_union_inplace(shared_memory, tmp);
+
+      set_free(tmp);
+    }
+  }
+
+  for(size_t i = 0; i < n_funcs; i++) {
+    for(size_t j = i+1; j < n_funcs; j++) {
+      set_t* tmp = set_alloc();
+
+      set_intersection(tmp, read_sets[i], write_sets[j]);
+      set_union_inplace(shared_memory, tmp);
+
+      set_free(tmp);
+    }
+  }
+
+  if(verbose >= 1) {
+    set_print("Shared memory: \n", shared_memory);
+  }
+}
+
+// OLD
 
 void reset_threads(eq_th_t **thread_arr, size_t num_threads){
     for (int i = 0; i < num_threads; i++) {

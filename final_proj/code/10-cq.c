@@ -1,6 +1,7 @@
 #include "rpi.h"
 #include "permutations.h"
 #include "interleaver.h"
+#include "equiv-checker.h"
 
 #define QUEUE_SIZE 100
 #define NUM_VARS 3
@@ -101,6 +102,8 @@ void consumerB(void **arg) {
 }
 
 void notmain() {
+    equiv_checker_init();
+    
     queue_init(&queue);
     vibe_init(&cur_vibes);
     

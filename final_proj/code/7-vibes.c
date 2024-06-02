@@ -1,6 +1,7 @@
 #include "rpi.h"
 #include "permutations.h"
 #include "interleaver.h"
+#include "equiv-checker.h"
 
 #define NUM_VARS 2
 #define NUM_FUNCS 2
@@ -23,6 +24,7 @@ int* global_var2;
 vibe_check_t cur_vibes; // Global spin lock
 
 // Function A
+EQUIV_USER
 void funcA(void **arg) {
     // spin_lock(&lock); // Acquire the lock
     secure_vibes(&cur_vibes); // Acquire the lock
@@ -36,6 +38,7 @@ void funcA(void **arg) {
 }
 
 // Function B 
+EQUIV_USER
 void funcB(void **arg) {
     // spin_lock(&lock); // Acquire the lock
     secure_vibes(&cur_vibes); // Acquire the lock
@@ -50,6 +53,8 @@ void funcB(void **arg) {
 
 void notmain() {
     int interleaved_ncs = 2;
+
+    equiv_checker_init();
 
     global_var = kmalloc(sizeof(int));
     *global_var = 0;

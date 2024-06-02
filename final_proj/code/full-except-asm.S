@@ -18,6 +18,7 @@
 @  add the rest.
 
 #include "rpi-asm.h"
+#include "equiv-checker-util.h"
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @  
@@ -79,6 +80,32 @@ MK_TRAMPOLINE(interrupt,        4, int_vector)
 @    faulted.
 prefetch_handler_full:
     @ initially we just forward to staff
+    @b staff_prefetch_trampoline_full
+
+    mov sp, #INT_STACK_ADDR
+    sub sp, sp, #(17 * 4)
+
+    @ Adjust LR according to arm1176 2-50
+    sub   lr, lr, #4
+
+    @ 0-14: general
+    stm sp, {r0-r14}^
+
+    @ 15: pc
+    str lr, [sp, #(15 * 4)]
+
+    @ 16: spsr
+    mrs r0, spsr
+    str r0, [sp, #(16 * 4)]
+
+    mov r0, sp
+    ldr r1, [sp, #(16 * 4)] @ CPSR
+    ldr r2, [sp, #(15 * 4)] @ PC
+    bl prefetch_abort_full_except
+
+    asm_not_reached();
+prefetch_handler_full_old:
+    @ initially we just forward to staff
     @ b staff_prefetch_trampoline_full
 
     mov sp, #INT_STACK_ADDR
@@ -107,6 +134,32 @@ prefetch_handler_full:
 @    faulted.
 data_abort_full:
     @ initially we just forward to staff
+    @b staff_data_abort_trampoline_full
+
+    mov sp, #INT_STACK_ADDR
+    sub sp, sp, #(17 * 4)
+
+    @ Adjust LR according to arm1176 2-51
+    sub   lr, lr, #8
+
+    @ 0-14: general
+    stm sp, {r0-r14}^
+
+    @ 15: pc
+    str lr, [sp, #(15 * 4)]
+
+    @ 16: spsr
+    mrs r0, spsr
+    str r0, [sp, #(16 * 4)]
+
+    mov r0, sp
+    ldr r1, [sp, #(16 * 4)] @ CPSR
+    ldr r2, [sp, #(15 * 4)] @ PC
+    bl data_abort_full_except
+
+    asm_not_reached();
+data_abort_full_old:
+    @ initially we just forward to staff
     @ b staff_data_abort_trampoline_full
 
     @ asm_todo("implement")
@@ -133,6 +186,31 @@ data_abort_full:
 @
 @ the pc in <regs> should point to the instruction after.
 syscall_full:
+    @ initially we just forward to staff
+    @b staff_syscall_trampoline_full
+
+    mov sp, #INT_STACK_ADDR
+    sub sp, sp, #(17 * 4)
+
+    @ Adjust LR according to arm1176 2-54
+    sub   lr, lr, #0
+
+    @ 0-14: general
+    stm sp, {r0-r14}^
+
+    @ 15: pc
+    str lr, [sp, #(15 * 4)]
+
+    @ 16: spsr
+    mrs r0, spsr
+    str r0, [sp, #(16 * 4)]
+
+    mov r0, sp
+    ldr r1, [sp, #(16 * 4)] @ CPSR
+    ldr r2, [sp, #(15 * 4)] @ PC
+    bl syscall_full_except
+    asm_not_reached();
+syscall_full_old:
     @ initially we just forward to staff
     @ b staff_syscall_trampoline_full
 
@@ -182,34 +260,57 @@ MK_FN(syscall_trampoline)
     pop {lr}
     bx lr
 
+EQUIV_USER_ASM
 
 .global vibe_check
 .global secure_vibes
 .global release_vibes
 
 vibe_check:
-    mrs     r3, cpsr
-    cpsid   i               @ Disable interrupts
-    mov     r1, #1
-    swp     r2, r1, [r0]    @ try acquiring the lock
-    mov     r0, r2          @ mov og value of lock into r0 (return value)
-    msr     cpsr_c, r3      @ restore og state of interrupt
-    bx      lr              
+  ldr r0, [r0]
+  bx lr
 
 secure_vibes:
-    mrs     r1, cpsr      @ save og cpsr state
-    cpsid   i             @ disable interrupts
-1:  ldr     r2, [r0]      @ load lock into r2
-    cmp     r2, #0        
-    bne     1b            
-    mov     r2, #1
-    swp     r2, r2, [r0]  @ attempt to get lock
-    cmp     r2, #0        
-    bne     1b            
-    msr     cpsr_c, r1    @ restore og cpsr
-    bx      lr            
+    ldr r1, #1
+1:  ldrex r2, [r0]
+    cmp r2, r1
+    beq b2
+    strexne r2, r1, [r0]
+    cmpne r2, #1
+    beq b1
+    @ dmb
+    bx lr
+2:  b b1
 
 release_vibes:
-    mov     r1, #0
-    str     r1, [r0]     @ set lock to available
-    bx      lr      
+    ldr r1, #0
+    @ dmb
+    str r1, [r0]
+    bx lr
+
+@ vibe_check:
+@     mrs     r3, cpsr
+@     cpsid   i               @ Disable interrupts
+@     mov     r1, #1
+@     swp     r2, r1, [r0]    @ try acquiring the lock
+@     mov     r0, r2          @ mov og value of lock into r0 (return value)
+@     msr     cpsr_c, r3      @ restore og state of interrupt
+@     bx      lr              
+@ 
+@ secure_vibes:
+@     mrs     r1, cpsr      @ save og cpsr state
+@     cpsid   i             @ disable interrupts
+@ 1:  ldr     r2, [r0]      @ load lock into r2
+@     cmp     r2, #0        
+@     bne     1b            
+@     mov     r2, #1
+@     swp     r2, r2, [r0]  @ attempt to get lock
+@     cmp     r2, #0        
+@     bne     1b            
+@     msr     cpsr_c, r1    @ restore og cpsr
+@     bx      lr            
+@ 
+@ release_vibes:
+@     mov     r1, #0
+@     str     r1, [r0]     @ set lock to available
+@     bx      lr      

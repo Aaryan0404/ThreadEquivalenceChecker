@@ -1,3 +1,5 @@
+#ifndef __INTERLEAVER_H
+#define __INTERLEAVER_H
 #include "equiv-threads.h"
 #include "memory.h"
 
@@ -10,6 +12,24 @@ typedef struct {
 } function_exec; 
 
 void set_verbosity(int v);
+
+// New
+
+typedef void (*init_memory_func)();
+
+void find_good_hashes_2(
+    function_exec* executables, size_t n_funcs,
+    init_memory_func init,
+    int** itl, size_t n_perms,
+    set_t* shared_memory, set_t* valid_hashes
+);
+
+void find_shared_memory(
+    function_exec* executables, size_t n_funcs,
+    set_t* shared_memory
+);
+
+// Old
 
 void reset_threads(eq_th_t **thread_arr, size_t num_threads);
 size_t init_threads(eq_th_t **thread_arr, function_exec* executables, int **itl, size_t num_funcs, int *num_instrs);
@@ -30,3 +50,4 @@ void generate_and_run_schedules(int *num_instrs, size_t total_instrs, size_t num
 void run_interleavings_as_generated(function_exec* executables, size_t num_funcs, int **itl, size_t num_perms, memory_segments* initial_mem_state, uint64_t *valid_hashes, int ncs, int loadstr);
 
 void run_one_schedule(function_exec* executables, size_t num_funcs, memory_segments* initial_mem_state, int loadstr, uint32_t* tid, uint32_t* instr_nums, uint32_t num_context_switches);
+#endif

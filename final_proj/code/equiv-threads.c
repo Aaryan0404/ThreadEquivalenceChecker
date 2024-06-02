@@ -3,6 +3,8 @@
 #include "mini-step.h"
 #include "equiv-threads.h"
 #include "fast-hash32.h"
+#include "equiv-mmu.h"
+#include "equiv-rw-set.h"
 
 enum { stack_size = 1024 * 2 };
 _Static_assert(stack_size > 1024, "too small");
@@ -117,12 +119,6 @@ void equiv_schedule(void)
  */
 int syscall_trampoline(int sysnum, ...);
 
-enum {
-    EQUIV_EXIT = 0,
-    EQUIV_PUTC = 1,
-    EQUIV_SWITCH = 2
-};
-
 // page A3-2
 enum {
     LS_IMMEDIATE_OFFSET = 0b010,
@@ -146,6 +142,7 @@ void disable_ctx_switch(){
 }
 
 // in staff-start.S
+
 void sys_equiv_exit(uint32_t ret);
 
 void sys_equiv_switch(uint32_t ret);
@@ -236,14 +233,20 @@ static inline regs_t equiv_regs_init(eq_th_t *p) {
     return regs;
 }
 
+static unsigned ntids = 1;
+
+void reset_ntids() {
+  assert(eq_empty(&equiv_runq));
+  ntids = 1;
+}
+
 // fork <fn(arg)> as a pre-emptive thread.
 eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash) {
     eq_th_t *th = kmalloc_aligned(stack_size, 8);
 
     assert((uint32_t)th%8==0);
     th->expected_hash = expected_hash;
-
-    static unsigned ntids = 1;
+    
     th->tid = ntids++;
 
     th->fn = (uint32_t)fn;
@@ -296,8 +299,10 @@ int is_load_or_store(uint32_t instr){
     return 0;
 }
 
+
 // just print out the pc and instruction count.
 static void equiv_hash_handler(void *data, step_fault_t *s) {
+    rw_tracker_arm();
     gcc_mb();
     let th = cur_thread;
     assert(th);
@@ -338,6 +343,8 @@ static void equiv_hash_handler(void *data, step_fault_t *s) {
         ctx_switch_idx++;
         equiv_schedule();
     }
+
+    
 }
 
 // run all the threads.
@@ -358,17 +365,19 @@ void equiv_run(void) {
 
     // this is roughly the same as in mini-step.c
     mismatch_on();
-    mismatch_pc_set(cur_thread->regs.regs[15]);
+    //mismatch_pc_set(cur_thread->regs.regs[15]);
     switchto_cswitch(&start_regs, &cur_thread->regs);
     mismatch_off();
     //trace("done, returning\n");
 }
 
+
+
 // one time initialazation
 void equiv_init(void) {
     if(init)
         return;
-    kmalloc_init();
-    mini_step_init(equiv_hash_handler, 0);
-    full_except_set_syscall(equiv_syscall_handler);
+    //kmalloc_init();
+    mini_step_init(equiv_hash_handler, 0); 
+    full_except_set_syscall(equiv_syscall_handler); 
 }

@@ -1,6 +1,7 @@
 #include "rpi.h"
 #include "permutations.h"
 #include "interleaver.h"
+#include "equiv-checker.h"
 
 #define NUM_VARS 1
 #define NUM_FUNCS 2
@@ -11,6 +12,7 @@ int* global_var2;
 int* global_var3;
 
 // Function A - increment global_var and set global_var2 to its new value
+EQUIV_USER
 void funcA(void **arg) {
     *global_var  = 4; 
     *global_var2 = 5; 
@@ -18,6 +20,7 @@ void funcA(void **arg) {
 }
 
 // Function B - double global_var2 and increment global_var based on the new value of global_var2
+EQUIV_USER
 void funcB(void **arg) {
     *global_var  = 5; 
     *global_var2 = 4; 
@@ -27,6 +30,8 @@ void funcB(void **arg) {
 void notmain() {
     // int interleaved_ncs = 1; 
     int interleaved_ncs = 2;
+
+    equiv_checker_init();
 
     global_var = kmalloc(sizeof(int));
     *global_var = 0;

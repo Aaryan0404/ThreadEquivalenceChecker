@@ -1,6 +1,7 @@
 #include "rpi.h"
 #include "permutations.h"
 #include "interleaver.h"
+#include "equiv-checker.h"
 
 #define MAX_STACK_SIZE 100
 #define NUM_VARS 2
@@ -38,6 +39,7 @@ void stack_init(AtomicStack *stack) {
     }
 }
 
+EQUIV_USER
 int stack_pop(AtomicStack *stack, int *global_value) {
     secure_vibes(&stack->lock);
     if (stack->top < 0) {
@@ -51,15 +53,18 @@ int stack_pop(AtomicStack *stack, int *global_value) {
 }
 
 // Function A: Pop from stack and update global_value
+EQUIV_USER
 void funcA(void **arg) {
     stack_pop(&stack, global_value);
 }
 
 // Function B: Pop from stack and update global_value (similar to funcA)
+EQUIV_USER
 void funcB(void **arg) {
     stack_pop(&stack, global_value);
 }
 
+EQUIV_USER
 void funcA_bad(void **arg) {
     if (stack.top < 0) {
         return;
@@ -68,6 +73,7 @@ void funcA_bad(void **arg) {
     stack.top -= 1;
 }
 
+EQUIV_USER
 void funcB_bad(void **arg) {
     if (stack.top < 0) {
         return;
@@ -77,6 +83,8 @@ void funcB_bad(void **arg) {
 }
 
 void notmain() {
+    equiv_checker_init();
+    
     stack_init(&stack);
     vibe_init(&cur_vibes);
     

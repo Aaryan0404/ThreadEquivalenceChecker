@@ -1,6 +1,7 @@
 #include "rpi.h"
 #include "permutations.h"
 #include "interleaver.h"
+#include "equiv-checker.h"
 
 #define NUM_VARS 2
 #define NUM_FUNCS 2
@@ -22,24 +23,28 @@ int* global_var;
 int* global_var2;
 vibe_check_t cur_vibes; // Global spin lock
 
+EQUIV_USER
 void atomic_increment(int *ptr) {
     secure_vibes(&cur_vibes);
     *ptr += 1; 
     release_vibes(&cur_vibes);
 }
 
+EQUIV_USER
 void atomic_decrement(int *ptr) {
     secure_vibes(&cur_vibes);
     *ptr -= 1; 
     release_vibes(&cur_vibes);
 }
 
+EQUIV_USER
 void atomic_load(int *ptr, int *result) {
     secure_vibes(&cur_vibes);
     *result = *ptr;
     release_vibes(&cur_vibes);
 }
 
+EQUIV_USER
 void atomic_store(int *ptr, int *val) {
     secure_vibes(&cur_vibes);
     *ptr = *val;
@@ -47,27 +52,33 @@ void atomic_store(int *ptr, int *val) {
 }
 
 // Function A
+EQUIV_USER
 void funcA(void **arg) {
     atomic_increment(global_var); 
 }
 
 // Function B 
+EQUIV_USER
 void funcB(void **arg) {
     atomic_decrement(global_var);
 }
 
 // Function A bad
+EQUIV_USER
 void funcA_bad(void **arg) {
     *global_var += 1;
 }
 
 // Function B bad
+EQUIV_USER
 void funcB_bad(void **arg) {
     *global_var -= 1; 
 }
 
 void notmain() {
     int interleaved_ncs = 2;
+
+    equiv_checker_init();
 
     global_var = kmalloc(sizeof(int));
     *global_var = 0;

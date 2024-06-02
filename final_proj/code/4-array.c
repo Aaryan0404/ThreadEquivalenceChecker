@@ -1,6 +1,7 @@
 #include "rpi.h"
 #include "permutations.h"
 #include "interleaver.h"
+#include "equiv-checker.h"
 
 #define NUM_VARS 3
 #define NUM_FUNCS 3
@@ -12,6 +13,7 @@ int* global_var2;
 int** global_var3;
 
 // multiply by 4 and add 1
+EQUIV_USER
 void funcMA(void **arg) {
     int a = *global_var;
     a += 1; 
@@ -23,6 +25,7 @@ void funcMA(void **arg) {
 }
 
 // subtracts 1 from global var a
+EQUIV_USER
 void funcMS(void **arg) {
     int a = *global_var2; 
     a *= 2;
@@ -34,6 +37,7 @@ void funcMS(void **arg) {
 }
 
 // set all elements of global_var3 to global_var
+EQUIV_USER
 void funcIndep(void **arg) {
     for (int i = 0; i < 3; i++) {
         *global_var3[i] = *global_var;
@@ -44,6 +48,8 @@ void notmain() {
     set_verbosity(2);
     // number of interleaved context switches (remaining context switches will result in threads being run to completion)
     int interleaved_ncs = 1; 
+
+    equiv_checker_init();
 
     global_var = kmalloc(sizeof(int));
     global_var2 = kmalloc(sizeof(int));
