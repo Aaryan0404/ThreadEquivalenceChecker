@@ -44,7 +44,7 @@ void notmain() {
     equiv_checker_init();
 
     // number of interleaved context switches (remaining context switches will result in threads being run to completion)
-    int interleaved_ncs = 1; 
+    int interleaved_ncs = 2; 
 
     global_var = kmalloc(sizeof(int));
     *global_var = 5;

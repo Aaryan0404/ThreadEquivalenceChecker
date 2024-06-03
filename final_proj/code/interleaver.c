@@ -13,6 +13,41 @@ void set_verbosity(int v){
 // NEW
 
 // runs each interleaving for a given number of instructions
+
+uint32_t tids_valid(uint32_t* tids, uint32_t ncs) {
+  for(int i = 0; i < ncs - 1; i++) {
+    if(tids[i] == tids[i+1])
+      return 0;
+  }
+  return 1;
+}
+
+uint32_t next_tid(uint32_t* tids, uint32_t ncs, uint32_t num_funcs) {
+  do {
+    uint32_t carry = 0;
+    for(int i = 0; i < ncs + 1; i++) {
+      // Increment
+      if(i == 0) {
+        tids[0]++;
+      }
+
+      if(carry) {	
+        tids[i]++;
+        carry = 0;	
+      }
+
+      if(tids[i] > num_funcs) {
+        tids[i] = 1;
+        carry = 1;
+      }
+    }
+    if(carry) {
+      return 0;
+    }
+  } while(!tids_valid(tids, ncs + 1));
+  return 1;
+}
+
 void run_interleavings(
   function_exec* executables,size_t num_funcs,
   set_t *valid_hashes,
@@ -30,16 +65,16 @@ void run_interleavings(
     uint32_t *tids       = (uint32_t *)equiv_malloc((ncs + 1) * sizeof(uint32_t));
     uint32_t *instr_nums = (uint32_t *)equiv_malloc((ncs)     * sizeof(uint32_t));
 
-    // all zero
+    // Generate an initial thread ordering
     for (int i = 0; i < ncs + 1; i++) {
         tids[i] = 1;
     }
-    for (int i = 0; i < ncs; i++) {
-        instr_nums[i] = 0;
-    }
+    next_tid(tids, ncs, num_funcs);
 
-    tids[0] = 1;
-    tids[1] = 2;
+    // Generate an initial instruction count set
+    for (int i = 0; i < ncs; i++) {
+        instr_nums[i] = 1;
+    }
 
     uint32_t done = 0;
     schedule_t schedule = {
@@ -64,8 +99,8 @@ void run_interleavings(
       rw_tracker_disable();
       disable_ctx_switch();
       
-      // TODO: Properly advance schedule
-      if(status.ctx_switch == 1) {
+      if(status.ctx_switch == ncs) {
+        // Happy state, schedule was valid
         uint32_t hash = hash_mem(shared_memory);
 
         if(!set_lookup(valid_hashes, hash)) {
@@ -73,17 +108,22 @@ void run_interleavings(
         } else {
           print_mem("Valid memory state detected\n", shared_memory);
         }
-        
-        instr_nums[0]++;
       }
-      if(status.ctx_switch == 0) {
-        instr_nums[0] = 0;
-        if(tids[0] == 2) {
-          done = 1;
+
+      // Advance instruction numbers
+      if(status.ctx_switch > 0) {
+        instr_nums[status.ctx_switch - 1]++;
+        if(status.ctx_switch < ncs) {
+          for(int i = status.ctx_switch; i < ncs; i++)
+            instr_nums[i] = 1;
         }
-        tids[0] = 2;
-        tids[1] = 1;
       }
+      // Advance TIDs
+      else {
+        for(int i = 0; i < ncs; i++) instr_nums[i] = 1;
+        if(!next_tid(tids, ncs, num_funcs)) done = 1;
+      }
+
       printk("======\n");
     }
     
