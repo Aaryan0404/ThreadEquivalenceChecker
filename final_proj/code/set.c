@@ -26,6 +26,26 @@ static inline uint32_t mask_has(uint32_t mask, uint32_t bit) {
   return mask & (1 << bit);
 }
 
+#define PRINT_INDENT for(int i = 0; i < l; i++) printk("  ");
+void set_dump_recurse(set_t* s, uint32_t l) {
+  PRINT_INDENT printk("mask: %b\n", s->mask);
+  PRINT_INDENT printk("offset: %d\n", s->offset);
+  if(s->offset > 0) {
+    for(int i = 0; i < 32; i++) {
+      if(mask_has(s->mask, i)) {
+        PRINT_INDENT printk("children[%d]:\n", i);
+        set_dump_recurse(s->children[i], l+1);
+      }
+    }
+  }
+}
+
+void set_dump(const char* msg, set_t* s) {
+  if(msg) printk(msg);
+
+  set_dump_recurse(s, 1);
+}
+
 void print_el(uint32_t v, void* arg) {
   printk("\t%x\n", v);
 }
@@ -61,7 +81,7 @@ uint32_t set_foreach(set_t* s, set_handler_t handler, void* arg) {
 }
 
 uint32_t set_empty(set_t* s) {
-  if(s->mask == 0) return 1;
+  if(set_cardinality(s) == 0) return 1;
   else return 0;
 }
 

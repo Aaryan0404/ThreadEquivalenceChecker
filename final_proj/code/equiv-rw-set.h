@@ -19,6 +19,12 @@ typedef struct {
  */
 
 /*
+ * Install handler to be called on every memory touch event
+ */
+typedef void (*memory_touch_handler_t)(set_t* touched_memory, uint32_t pc); 
+void set_memory_touch_handler(memory_touch_handler_t func);
+
+/*
  * Initialize the read-write tracker.
  */
 void rw_tracker_init(uint32_t enabled);

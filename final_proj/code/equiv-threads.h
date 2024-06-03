@@ -5,17 +5,20 @@
  * simple process support.
  */
 #include "switchto.h"
+#include "set.h"
+
+typedef struct {
+  uint32_t* tids;
+  uint32_t* instr_counts;
+  uint32_t n_ctx_switches;
+  uint32_t n_funcs;
+} schedule_t;
+
 typedef struct eq_th {
     // thread's registers.
     regs_t regs;
 
     struct eq_th *next;
-
-    // if non-zero: the hash we expect to get 
-    uint32_t expected_hash;
-
-    // the current cumulative hash
-    uint32_t reg_hash;          
 
     uint32_t tid;           // thread id.
 
@@ -26,10 +29,15 @@ typedef struct eq_th {
     uint32_t refork_cnt;
 
     // how many instructions we executed.
-    uint32_t inst_cnt;
-    uint32_t loadstr_cnt;
     unsigned verbose_p;  // if you want alot of information.
 } eq_th_t;
+
+typedef struct {
+  uint32_t ctx_switch;
+  uint32_t instr_count;
+  // Set to true before R/W commits, read by prefetch abort for next instruction
+  uint32_t do_instr_count;
+} ctx_switch_status_t;
 
 enum {
     EQUIV_EXIT = 0,
@@ -39,7 +47,27 @@ enum {
 
 typedef void (*equiv_fn_t)(void*);
 
-void set_ctx_switches(uint32_t* tid, uint32_t* n, uint32_t num_context_switches);
+// Handler for touch events. Updates context switch status
+void ctx_switch_handler(set_t *touched_memory, uint32_t pc);
+
+void print_schedule(const char* msg, schedule_t* schedule);
+
+// Sets the current schedule
+void set_schedule(schedule_t* s);
+
+// Sets the shared memory set
+void set_shared_memory(set_t* sh);
+
+ctx_switch_status_t get_ctx_switch_status();
+
+// Resets the context switching state
+void reset_ctx_switch();
+
+// Sets the schedule and shared mem then turns on context switching
+void enable_ctx_switch(schedule_t* sched, set_t* shared_mem);
+
+// Disables context switching
+void disable_ctx_switch();
 
 // a very heavy handed initialization just for today's lab.
 // assumes it has total control of system calls etc.
@@ -58,8 +86,6 @@ void equiv_run(void);
 void sys_equiv_exit(uint32_t ret);
 
 void equiv_refresh(eq_th_t *th);
-
-void disable_ctx_switch();
 
 // don't set stack pointer.
 eq_th_t *equiv_fork_nostack(void (*fn)(void**), void **args, uint32_t expected_hash);

@@ -16,7 +16,11 @@ int* global_var;
 EQUIV_USER
 void funcMA(void **arg) {
     int a = *global_var;
+    gcc_mb();
     a += 1; 
+    a *= 3;
+    a++;
+    gcc_mb();
     *global_var = a;   
 }
 
@@ -24,7 +28,11 @@ void funcMA(void **arg) {
 EQUIV_USER
 void funcMS(void **arg) {
     int a = *global_var;
+    gcc_mb();
     a *= 2;
+    a -= 7;
+    a *= 3;
+    gcc_mb();
     *global_var = a;
 }
 
@@ -64,17 +72,24 @@ void notmain() {
     // uint64_t valid_hashes[num_perms];
     
 
-    set_t* vh = set_alloc();
-    find_good_hashes_2(
+    set_t* valid_hashes = set_alloc();
+    find_good_hashes(
       executables, NUM_FUNCS,
       init_memory,
       itl, num_perms,
-      shared_memory,vh 
+      shared_memory, valid_hashes
     );
 
-    set_print("Valid hashes\n", vh);
+    set_print("Valid hashes\n", valid_hashes);
 
-    run_interleavings(executables, NUM_FUNCS, valid_hashes, interleaved_ncs, shared_memory); 
+    run_interleavings(
+      executables,
+      NUM_FUNCS,
+      valid_hashes,
+      init_memory,
+      interleaved_ncs,
+      shared_memory
+    ); 
 
     // find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
     // run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);

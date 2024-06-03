@@ -12,10 +12,14 @@ void set_verbosity(int v){
 
 // NEW
 
-executables, NUM_FUNCS, valid_hashes, interleaved_ncs
-
 // runs each interleaving for a given number of instructions
-void run_interleavings(function_exec* executables, size_t num_funcs, uint64_t *valid_hashes, int ncs, set_t *shared_memory) {
+void run_interleavings(
+  function_exec* executables,size_t num_funcs,
+  set_t *valid_hashes,
+  init_memory_func init,
+  int ncs,
+  set_t *shared_memory
+) {
     equiv_init();
 
     disable_ctx_switch();
@@ -28,13 +32,62 @@ void run_interleavings(function_exec* executables, size_t num_funcs, uint64_t *v
 
     // all zero
     for (int i = 0; i < ncs + 1; i++) {
-        tids[i] = 0;
+        tids[i] = 1;
     }
     for (int i = 0; i < ncs; i++) {
         instr_nums[i] = 0;
     }
 
-    set_ctx_switches(tids, instr_nums, ncs);
+    tids[0] = 1;
+    tids[1] = 2;
+
+    uint32_t done = 0;
+    schedule_t schedule = {
+      .tids = tids,
+      .instr_counts = instr_nums,
+      .n_ctx_switches = ncs,
+      .n_funcs = num_funcs
+    };
+    while(!done) {
+      printk("\n======\n");
+      print_schedule("Running schedule: \n", &schedule);
+      init();
+      reset_threads(threads, num_funcs);
+      set_memory_touch_handler(ctx_switch_handler);
+      enable_ctx_switch(&schedule, shared_memory);
+      rw_tracker_enable();
+
+      equiv_run();
+
+      let status = get_ctx_switch_status();
+      
+      rw_tracker_disable();
+      disable_ctx_switch();
+      
+      // TODO: Properly advance schedule
+      if(status.ctx_switch == 1) {
+        uint32_t hash = hash_mem(shared_memory);
+
+        if(!set_lookup(valid_hashes, hash)) {
+          print_mem("Invalid memory state detected\n", shared_memory);
+        } else {
+          print_mem("Valid memory state detected\n", shared_memory);
+        }
+        
+        instr_nums[0]++;
+      }
+      if(status.ctx_switch == 0) {
+        instr_nums[0] = 0;
+        if(tids[0] == 2) {
+          done = 1;
+        }
+        tids[0] = 2;
+        tids[1] = 1;
+      }
+      printk("======\n");
+    }
+    
+    
 
     // for (int i = 0; i < count; i++) {
     //     tids[i] = (uint32_t *)equiv_malloc(actual_ncs * sizeof(uint32_t));
@@ -179,7 +232,11 @@ void reset_threads(eq_th_t **thread_arr, size_t num_threads){
 }
 
 // init threads from executables and store total num instructions per func in num_instrs 
-void init_threads(eq_th_t **thread_arr, function_exec* executables, size_t num_funcs) {
+void init_threads(
+  eq_th_t **thread_arr,
+  function_exec* executables,
+  size_t num_funcs
+) {
     reset_ntids(); 
     for (size_t f_idx = 0; f_idx < num_funcs; f_idx++) {
         let th = equiv_fork(executables[f_idx].func_addr, NULL, 0);
@@ -189,6 +246,7 @@ void init_threads(eq_th_t **thread_arr, function_exec* executables, size_t num_f
 
 // OLD
 
+/*
 void interleave(int *counts, int *limits, int *result, uint32_t *count, int n, int total_chars, int switches, int ncs, int level, int lastInt, int **interleave_output) {
     if (level == total_chars && switches == ncs) {
         if (interleave_output != NULL) {
@@ -354,3 +412,5 @@ void run_one_schedule(function_exec* executables, size_t num_funcs, memory_segme
     printk("Memory state after running schedule:\n");
     print_memstate(initial_mem_state);
 }
+
+*/

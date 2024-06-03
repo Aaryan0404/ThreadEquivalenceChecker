@@ -21,14 +21,9 @@ static rq_t equiv_runq;
 static eq_th_t * volatile cur_thread;
 static regs_t start_regs;
 
-// an array of the instruction numbers for each thread at which we'll context switch
-static uint32_t* ctx_switch_instr_num;
-// an array of the thread ids at which we will context switch
-static uint32_t* ctx_switch_tid;
-// the current context switch we're on (aka the current idx of arrays)
-static int ctx_switch_idx = -1;
-// the total number of context switches
-static size_t num_context_switches = 0;
+static ctx_switch_status_t ctx_switch_status;
+static set_t* shared_memory = NULL;
+static schedule_t* schedule = NULL;
 
 static uint32_t init = 0;
 
@@ -72,51 +67,23 @@ eq_th_t * retrieve_tid_from_queue(uint32_t tid) {
     return th;
 }
 
-static set_t *shared_memory;
-static num_instrs_executed = 0;
-
-static void ctx_switch_handler(set_t *touched_memory) {
-    // find intersection of shared memory and touched memory
-    set_t *intersection = set_alloc();
-    set_intersection(intersection, shared_memory, touched_memory);
-
-    // if the intersection is non-empty
-    if (!set_empty(intersection)) {
-        // increment 
-        num_instrs_executed++;
-
-        if (num_instrs_executed >= ctx_switch_instr_num[ctx_switch_idx]) {
-            ctx_switch_idx++;
-            num_instrs_executed = 0;
-
-            // context switch
-            equiv_schedule();
-        }
-    }
-}
-
-/********************************************************************
- * create threads: this is roughly the code from mini-step and the 
- * test.
- *
- * make processes, put them on a runqueue.
- */
-
-
 static __attribute__((noreturn)) 
 void equiv_schedule(void) 
 {
     assert(cur_thread);
 
-    eq_th_t * th = 0;
-    // printk("equiv_schedule\n");
-    // if we have context switches remaining, switch to the next thread in the schedule
-    // otherwise we'll just run whatever the next thread in the queue is to completion
-    if(ctx_switch_idx < num_context_switches) {
-        // printk("ctx_switch_idx: %d\n", ctx_switch_idx);
-        // printk("#3 pushing tid %d\n", cur_thread->tid);
-        // eq_append(&equiv_runq, cur_thread);
-        th = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
+    eq_th_t * th = NULL;
+
+    // if we have context switches remaining, switch to the next thread in the
+    // schedule otherwise we'll just run whatever the next thread in the queue
+    // is to completion
+    if(
+      schedule &&
+      ctx_switch_status.ctx_switch < schedule->n_ctx_switches
+    ) {
+      panic("BAD");
+        uint32_t tid_idx = ctx_switch_status.ctx_switch + 1;
+        th = retrieve_tid_from_queue(schedule->tids[tid_idx]);
     }
     else{
         th = eq_pop(&equiv_runq);
@@ -124,7 +91,7 @@ void equiv_schedule(void)
     
     if(th) {
         if(th->verbose_p)
-            output("switching from tid=%d,pc=%x to tid=%d,pc=%x,sp=%x\n", 
+            trace("switching from tid=%d,pc=%x to tid=%d,pc=%x,sp=%x\n", 
                 cur_thread->tid, 
                 cur_thread->regs.regs[REGS_PC],
                 th->tid,
@@ -136,6 +103,54 @@ void equiv_schedule(void)
     uart_flush_tx();
     mismatch_run(&cur_thread->regs);
 }
+
+void print_schedule(const char* msg, schedule_t* schedule) {
+  if(msg) printk(msg);
+
+  /* Code golf */
+  for(int f = 0; f < schedule->n_funcs; f++) {
+    printk("\t%d", f);
+  }
+  printk("\n");
+  for(int ctx_switch = 0; ctx_switch < schedule->n_ctx_switches; ctx_switch++) {
+    for(int instr = 0; instr < schedule->instr_counts[ctx_switch]; instr++) {
+      for(int f = 0; f < schedule->n_funcs; f++) {
+        printk("\t");
+        if(schedule->tids[ctx_switch]-1 == f) printk("|");
+        else printk(" ");
+      }
+      printk("\n");
+    }
+  }
+  for(int f = 0; f < schedule->n_funcs; f++) {
+    printk("\t");
+    if(schedule->tids[schedule->n_ctx_switches]-1 == f) printk("R", f);
+    else printk(" ");
+  }
+  printk("\n");
+}
+
+void ctx_switch_handler(set_t *touched_memory, uint32_t pc) {
+    // If we don't have a schedule, give up
+    if(!schedule) return;
+
+    // If we are out of context switches, run to completion
+    if(ctx_switch_status.ctx_switch >= schedule->n_ctx_switches) return;
+
+    // find intersection of shared memory and touched memory
+    set_t *intersection = set_alloc();
+    set_intersection(intersection, shared_memory, touched_memory);
+
+    // if the intersection is non-empty
+    if (!set_empty(intersection)) {
+        if(cur_thread->verbose_p)
+          trace("PC %x touched shared memory\n", pc);
+        set_free(intersection);
+        ctx_switch_status.do_instr_count = 1;
+    }
+}
+
+
 
 /******************************************************************
  * tiny syscall setup.
@@ -151,17 +166,28 @@ enum {
 
 // page A3-39
 
-void set_ctx_switches(uint32_t* tid, uint32_t* n, uint32_t ncs) {
-    ctx_switch_instr_num = n;
-    ctx_switch_tid = tid;
-    ctx_switch_idx = 0;
-    num_context_switches = ncs;
+void set_schedule(schedule_t* s) { schedule = s; }
+
+void set_shared_memory(set_t* sh) { shared_memory = sh; }
+
+void reset_ctx_switch() {
+  ctx_switch_status.instr_count = 0;
+  ctx_switch_status.ctx_switch = 0;
+  ctx_switch_status.do_instr_count = 0;
 }
 
+void enable_ctx_switch(schedule_t* sched, set_t* shared_mem) {
+  schedule = sched;
+  shared_memory = shared_mem;
+  reset_ctx_switch();
+}
+
+ctx_switch_status_t get_ctx_switch_status() { return ctx_switch_status; }
+
 void disable_ctx_switch(){
-    ctx_switch_instr_num = NULL;
-    ctx_switch_tid = NULL;
-    ctx_switch_idx = -1;
+    schedule = NULL;
+    shared_memory = NULL;
+    reset_ctx_switch();
 }
 
 // in staff-start.S
@@ -197,31 +223,27 @@ static int equiv_syscall_handler(regs_t *r) {
         uart_put8(r->regs[1]);
         break;
     case EQUIV_EXIT: 
-        // trace("thread=%d exited with code=%d, hash=%x\n", 
-        //     th->tid, r->regs[1], th->reg_hash);
-
-        // check hash.
-        if(!th->expected_hash)
-            th->expected_hash = th->reg_hash;
-        else if(th->expected_hash) {
-            let exp = th->expected_hash;
-            let got = th->reg_hash;
-            // if(exp == got) {
-            //     trace("EXIT HASH MATCH: tid=%d: hash=%x\n", 
-            //         th->tid, exp, got);
-            // } else {
-            //     panic("MISMATCH ERROR: tid=%d: expected hash=%x, have=%x\n", 
-            //         th->tid, exp, got);
-            // }
+        if(schedule) {
+          // Run to completion. Disable traps
+          if(ctx_switch_status.ctx_switch >= schedule->n_ctx_switches) {
+            if(cur_thread->verbose_p)
+              trace("Done with schedule\n");
+            schedule = NULL;
+           // Finished early, disable traps
+          } else {
+            if(cur_thread->verbose_p)
+              trace("Finished early, running to completion\n");
+            schedule = NULL;
+          }
         }
-
-        // this could be cleaner: sorry.
-        eq_th_t *th = eq_pop(&equiv_runq);
-        // printk("thread %d next\n", th->tid);
+        th = eq_pop(&equiv_runq);
+        
+        if(th && th->verbose_p)
+          trace("thread %d next\n", th->tid);
 
         // if no more threads we are done.
         if(!th) {
-            //trace("done with all threads\n");
+            if(th->verbose_p) trace("done with all threads\n");
             switchto(&start_regs);
         }
         // otherwise do the next one.
@@ -268,9 +290,9 @@ eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash) {
     eq_th_t *th = kmalloc_aligned(stack_size, 8);
 
     assert((uint32_t)th%8==0);
-    th->expected_hash = expected_hash;
-    
     th->tid = ntids++;
+
+    //th->verbose_p = 1;
 
     th->fn = (uint32_t)fn;
     th->args = (uint32_t)args;
@@ -299,9 +321,6 @@ eq_th_t *equiv_fork_nostack(void (*fn)(void**), void **args, uint32_t expected_h
 void equiv_refresh(eq_th_t *th) {
     th->regs = equiv_regs_init(th); 
     check_sp(th);
-    th->inst_cnt = 0;
-    th->loadstr_cnt = 0;
-    th->reg_hash = 0;
     eq_push(&equiv_runq, th);
 }
 
@@ -309,58 +328,58 @@ void equiv_refresh(eq_th_t *th) {
 // just print out the pc and instruction count.
 static void equiv_hash_handler(void *data, step_fault_t *s) {
     rw_tracker_arm();
-    gcc_mb();
-    let th = cur_thread;
-    assert(th);
-    th->regs = *s->regs;
-    th->inst_cnt++;
-    // some counter for load/store
 
-    // to see if its a load or store you access s->pc as a volatile uint32_t
-    // compare with page A3-2 to see
+    if(ctx_switch_status.do_instr_count) {
+      ctx_switch_status.do_instr_count = 0;
+      // increment 
+      ctx_switch_status.instr_count++;
 
-    // try to get register hash mapping to work
+      // If we have reached the number of expected instructions, context
+      // switch
+      if (
+        ctx_switch_status.instr_count >= 
+        schedule->instr_counts[ctx_switch_status.ctx_switch]
+      ) {
+        if(cur_thread->verbose_p)
+          trace(
+            "Finished executing %d instructions on thread %d, switching...\n",
+            ctx_switch_status.instr_count, cur_thread->tid
+          );
 
-    let regs = s->regs->regs;
-    uint32_t pc = regs[15];
-    uint32_t fault_instr = GET32(s->fault_pc);
-    if(!load_str_mode){
-        th->loadstr_cnt++;
-    }
-    else if(is_load_or_store(fault_instr)){
-        th->loadstr_cnt++;
-    }
-    // output("tid=%d: pc=%x, cnt=%d, ld_strcnt=%d\n", th->tid, pc, th->inst_cnt, th->loadstr_cnt);
-    
-    th->reg_hash = fast_hash_inc32(&th->regs, sizeof th->regs, th->reg_hash);
+          ctx_switch_status.ctx_switch++;
+          ctx_switch_status.instr_count = 0;
 
-    // should let them turn it off.
-    if(th->verbose_p)
-        output("hash: tid=%d: cnt=%d: pc=%x, hash=%x\n", 
-            th->tid, th->inst_cnt, pc, th->reg_hash);
+          // context switch
+          // equiv_schedule();
+          uint32_t tid_idx = ctx_switch_status.ctx_switch;
+          eq_th_t* th = retrieve_tid_from_queue(schedule->tids[tid_idx]);
+          eq_append(&equiv_runq, cur_thread);
+          
+          if(th->verbose_p)
+            trace("switching from tid=%d,pc=%x to tid=%d,pc=%x,sp=%x\n", 
+                cur_thread->tid, 
+                cur_thread->regs.regs[REGS_PC],
+                th->tid,
+                th->regs.regs[REGS_PC],
+                th->regs.regs[REGS_SP]);
 
-    gcc_mb();
-    // if we reach the instruction on the tid specified in the schedule, context switch
-    // equiv_schedule will look at the array to figure out the next thread in the schedule, and switch to that
-    if(ctx_switch_idx < 0){
-        equiv_schedule();
-    }
-    else if (th->tid == ctx_switch_tid[ctx_switch_idx] && th->loadstr_cnt == ctx_switch_instr_num[ctx_switch_idx]) {
-        ctx_switch_idx++;
-        equiv_schedule();
+          cur_thread = th;
+          uart_flush_tx();
+          mismatch_run(&cur_thread->regs);
+      }
     }
 }
 
 // run all the threads.
 void equiv_run(void) {
     // printk("starting equiv_run\n");
-    if(ctx_switch_idx < 0) {
+    if(!schedule) {
         cur_thread = eq_pop(&equiv_runq);
     }
     else{
         // printk("current thread %d\n", cur_thread->tid);
         // printk("retrieving thread %d\n", ctx_switch_tid[ctx_switch_idx]);
-        cur_thread = retrieve_tid_from_queue(ctx_switch_tid[ctx_switch_idx]);
+        cur_thread = retrieve_tid_from_queue(schedule->tids[0]);
     }
     // printk("starting thread %d\n", cur_thread->tid);
     
@@ -369,7 +388,7 @@ void equiv_run(void) {
 
     // this is roughly the same as in mini-step.c
     mismatch_on();
-    //mismatch_pc_set(cur_thread->regs.regs[15]);
+    mismatch_pc_set(0);
     switchto_cswitch(&start_regs, &cur_thread->regs);
     mismatch_off();
     //trace("done, returning\n");
@@ -383,7 +402,6 @@ void equiv_run(void) {
 void equiv_init(void) {
     if(init)
         return;
-    //kmalloc_init();
     mini_step_init(equiv_hash_handler, 0); 
     full_except_set_syscall(equiv_syscall_handler); 
 }

@@ -43,6 +43,11 @@ void set_mk(set_t* s, uint32_t offset);
 void set_print(const char* msg, set_t* s);
 
 /*
+ * Dumps an entire set's data structure
+ */
+void set_dump(const char* msg, set_t* s);
+
+/*
  * Calls handler for each element of a set. Returns number of times handler was
  * called.
  *
