@@ -1,13 +1,8 @@
 #include "rpi.h"
-#include "permutations.h"
-#include "interleaver.h"
 #include "equiv-checker.h"
-#include "equiv-rw-set.h"
-#include "memory.h"
 
-#define NUM_VARS 1
 #define NUM_FUNCS 2
-#define load_store_mode 0
+#define NUM_CTX 2
 
 // USER CODE
 int* global_var;
@@ -42,10 +37,9 @@ void init_memory() {
 
 void notmain() {    
     equiv_checker_init();
+    set_verbosity(1);
 
     // number of interleaved context switches (remaining context switches will result in threads being run to completion)
-    int interleaved_ncs = 2; 
-
     global_var = kmalloc(sizeof(int));
     *global_var = 5;
 
@@ -53,45 +47,5 @@ void notmain() {
     executables[0].func_addr = (func_ptr)funcMA;
     executables[1].func_addr = (func_ptr)funcMS;
 
-    set_t* shared_memory = set_alloc();
-    find_shared_memory(executables, NUM_FUNCS, shared_memory);
-
-    // set_t* pcs = set_alloc();
-    // find_pc_set(funcMA, shared_memory, pcs);
-    // set_print("funcMA's 'bad' PCs:\n", pcs);
-
-    // convert global vars to an array of pointers
-    // int *mem_locations[NUM_VARS] = {global_var};
-    // size_t sizes[NUM_VARS] = {sizeof(int)};
-
-    // memory_segments initial_mem_state = {NUM_VARS, (void **)mem_locations, NULL, sizes}; 
-    // initialize_memory_state(&initial_mem_state);
-
-    const size_t num_perms = factorial(NUM_FUNCS);
-    int **itl = get_func_permutations(NUM_FUNCS);
-    // uint64_t valid_hashes[num_perms];
-    
-
-    set_t* valid_hashes = set_alloc();
-    find_good_hashes(
-      executables, NUM_FUNCS,
-      init_memory,
-      itl, num_perms,
-      shared_memory, valid_hashes
-    );
-
-    set_print("Valid hashes\n", valid_hashes);
-
-    run_interleavings(
-      executables,
-      NUM_FUNCS,
-      valid_hashes,
-      init_memory,
-      interleaved_ncs,
-      shared_memory
-    ); 
-
-    // find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-    // run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
-    // run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    equiv_checker_run(executables, NUM_FUNCS, NUM_CTX, init_memory, NULL);
 }

@@ -2,6 +2,10 @@
 #include "equiv-malloc.h"
 #include "equiv-mmu.h"
 #include "equiv-rw-set.h"
+#include "permutations.h"
+#include "interleaver.h"
+#include "equiv-rw-set.h"
+#include "memory.h"
 
 void equiv_copy_user_data() { 
 
@@ -40,4 +44,43 @@ void equiv_checker_init() {
 
   // RW tracker
   rw_tracker_init(0);
+}
+
+
+void equiv_checker_run(
+  function_exec *executables,
+  uint32_t n_func,
+  uint32_t ncs,
+  init_memory_func init,
+  set_t* additional_shared_memory
+) {
+  set_t* shared_memory = set_alloc();
+  find_shared_memory(executables, n_func, shared_memory);
+  if(additional_shared_memory)
+    set_union_inplace(shared_memory, additional_shared_memory);
+
+  const size_t num_perms = factorial(n_func);
+  int **itl = get_func_permutations(n_func);
+
+  set_t* valid_hashes = set_alloc();
+  find_good_hashes(
+    executables, n_func,
+    init,
+    itl, num_perms,
+    shared_memory, valid_hashes
+  );
+
+  for(int i = 1; i <= ncs; i++) {
+    run_interleavings(
+      executables,
+      n_func,
+      valid_hashes,
+      init,
+      i,
+      shared_memory
+    );
+  }
+
+  set_free(valid_hashes);
+  set_free(shared_memory);
 }
