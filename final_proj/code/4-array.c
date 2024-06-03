@@ -3,9 +3,8 @@
 #include "interleaver.h"
 #include "equiv-checker.h"
 
-#define NUM_VARS 3
 #define NUM_FUNCS 3
-#define load_store_mode 1
+#define NUM_CTX 1
 
 // USER CODE
 int* global_var;
@@ -44,40 +43,33 @@ void funcIndep(void **arg) {
     }
 }
 
+void init_memory() {
+  *global_var = 5;
+  *global_var2 = 10;
+
+  *global_var3[0] = 0;
+  *global_var3[1] = 0;
+  *global_var3[2] = 0;
+}
+
 void notmain() {    
     set_verbosity(2);
-    // number of interleaved context switches (remaining context switches will result in threads being run to completion)
-    int interleaved_ncs = 1; 
-
     equiv_checker_init();
 
     global_var = kmalloc(sizeof(int));
     global_var2 = kmalloc(sizeof(int));
     global_var3 = kmalloc(sizeof(int) * 3);
-    *global_var = 5;
-    *global_var2 = 10;
 
-    *global_var3[0] = 0;
-    *global_var3[1] = 0;
-    *global_var3[2] = 0;
+    equiv_checker_init();
+
+    global_var = kmalloc(sizeof(int));
+    global_var2 = kmalloc(sizeof(int));
+    global_var3 = kmalloc(sizeof(int));
     
-    // convert global vars to an array of pointers
-    void *mem_locations[NUM_VARS] = {(void *)global_var, (void *)global_var2, (void *)global_var3};
-    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int), sizeof(int) * 3};
-
-    memory_segments initial_mem_state = {NUM_VARS, (void **)mem_locations, NULL, sizes}; 
-    initialize_memory_state(&initial_mem_state);
-
-    const size_t num_perms = factorial(NUM_FUNCS);
-    int **itl = get_func_permutations(NUM_FUNCS);
-    uint64_t valid_hashes[num_perms];
-
     function_exec *executables = kmalloc(NUM_FUNCS * sizeof(function_exec));
     executables[0].func_addr = (func_ptr)funcMA;
     executables[1].func_addr = (func_ptr)funcMS;
     executables[2].func_addr = (func_ptr)funcIndep;
 
-    find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-    run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
-    // run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    equiv_checker_run(executables, NUM_FUNCS, NUM_CTX, init_memory, NULL);
 }

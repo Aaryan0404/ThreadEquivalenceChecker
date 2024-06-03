@@ -105,19 +105,14 @@ static void rw_tracker_data_abort_handler(regs_t* r) {
   }
 
   // Store R/W addresses
-  if(current_tracker.write && w)      set_union_inplace(current_tracker.write, touched);
-  else if(current_tracker.read && !w)  set_union_inplace(current_tracker.read, touched);
-
-  // Handle flagged PCs now that we don't need touched anymore
-  if(current_tracker.shared_memory && current_tracker.flagged_pcs) {
-    set_intersection_inplace(touched, current_tracker.shared_memory);
-    if(!set_empty(touched)) {
-      set_insert(current_tracker.flagged_pcs, pc);
-    }
-  }
+  if(current_tracker.write && w)
+    set_union_inplace(current_tracker.write, touched);
+  else if(current_tracker.read && !w)
+    set_union_inplace(current_tracker.read, touched);
 
   // Disable data aborts
   rw_tracker_disarm();
+  set_free(touched);
 }
 
 void rw_tracker_init(uint32_t enabled) {

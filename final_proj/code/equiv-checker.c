@@ -71,6 +71,7 @@ void equiv_checker_run(
   );
 
   for(int i = 1; i <= ncs; i++) {
+    printk("\nTrying %d context switches...\n", i);
     run_interleavings(
       executables,
       n_func,

@@ -1,9 +1,9 @@
 # PROGS += state-space.c
 # PROGS += set-test.c
-PROGS += 1-basic.c
+# PROGS += 1-basic.c
 # PROGS += 1-debug.c
 # PROGS += 2-multivar.c 
-# PROGS += 3-multifunc.c 
+PROGS += 3-multifunc.c 
 # PROGS += 4-array.c
 # PROGS += 5-multi-ctx-switch.c
 # PROGS += 6-ldstr-mode.c

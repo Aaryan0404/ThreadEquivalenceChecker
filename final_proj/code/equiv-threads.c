@@ -124,7 +124,13 @@ void print_schedule(const char* msg, schedule_t* schedule) {
   }
   for(int f = 0; f < schedule->n_funcs; f++) {
     printk("\t");
-    if(schedule->tids[schedule->n_ctx_switches]-1 == f) printk("R", f);
+    if(schedule->tids[schedule->n_ctx_switches]-1 == f) printk("|", f);
+    else printk(" ");
+  }
+  printk("\n");
+  for(int f = 0; f < schedule->n_funcs; f++) {
+    printk("\t");
+    if(schedule->tids[schedule->n_ctx_switches]-1 == f) printk("X", f);
     else printk(" ");
   }
   printk("\n");
@@ -145,9 +151,9 @@ void ctx_switch_handler(set_t *touched_memory, uint32_t pc) {
     if (!set_empty(intersection)) {
         if(cur_thread->verbose_p)
           trace("PC %x touched shared memory\n", pc);
-        set_free(intersection);
         ctx_switch_status.do_instr_count = 1;
     }
+    set_free(intersection);
 }
 
 
