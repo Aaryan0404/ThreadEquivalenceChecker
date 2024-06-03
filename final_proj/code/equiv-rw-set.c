@@ -13,8 +13,14 @@ static rw_tracker_t current_tracker;
 static void get_touched_bytes(uint32_t instruction, uint32_t addr, set_t* destination_set) {
   // TODO: Alignment?????
 
+  // A4-52 & A4-202 LDREX/STREXX
+  if(bits_get(instruction, 21, 27) == 0b0001100) {
+    // Only words
+    for(int i = 0; i < 4; i++)
+      set_insert(destination_set, addr + i);
+  }
   // A3-22 : Load/store word or unsigned byte
-  if(bits_get(instruction, 26, 27) == 0b01) {
+  else if(bits_get(instruction, 26, 27) == 0b01) {
     // A3-22 : B == 1 means byte
     if(bit_isset(instruction, 22)) {
       set_insert(destination_set, addr);
@@ -23,9 +29,8 @@ static void get_touched_bytes(uint32_t instruction, uint32_t addr, set_t* destin
         set_insert(destination_set, addr + i);
     }
   }
-
   // A3-23 : Load/store halfword, double word, or signed byte
-  if(bits_get(instruction, 25, 27) == 0b000) {
+  else if(bits_get(instruction, 25, 27) == 0b000) {
     // Ugh
     uint32_t l = bit_isset(instruction, 20);
     uint32_t sh = bits_get(instruction, 5, 6);
@@ -56,9 +61,8 @@ static void get_touched_bytes(uint32_t instruction, uint32_t addr, set_t* destin
         panic("Unexpected LSH combination\n");
     }
   }
-
   // A3-26 : Load/store multiple
-  if(bits_get(instruction, 25, 27) == 0b100) {
+  else if(bits_get(instruction, 25, 27) == 0b100) {
     // Weakness - assumes that the LDM/STM traps for ALL accessed data, not
     // only some of the accesses
     uint32_t register_list = bits_get(instruction, 0, 15);
@@ -71,6 +75,8 @@ static void get_touched_bytes(uint32_t instruction, uint32_t addr, set_t* destin
       }
     }
   }
+
+  
 }
 
 

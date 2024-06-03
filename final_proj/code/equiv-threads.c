@@ -335,6 +335,9 @@ void equiv_refresh(eq_th_t *th) {
 static void equiv_hash_handler(void *data, step_fault_t *s) {
     rw_tracker_arm();
 
+    // Update the current thread's register data
+    memcpy(&cur_thread->regs, s->regs, sizeof(regs_t));
+
     if(ctx_switch_status.do_instr_count) {
       ctx_switch_status.do_instr_count = 0;
       // increment 
