@@ -52,12 +52,16 @@ void equiv_checker_run(
   uint32_t n_func,
   uint32_t ncs,
   init_memory_func init,
-  set_t* additional_shared_memory
+  set_t* additional_shared_memory,
+  memory_tags_t* tags
 ) {
+  assert(ncs);
+
   set_t* shared_memory = set_alloc();
   find_shared_memory(executables, n_func, shared_memory);
-  if(additional_shared_memory)
+  if(additional_shared_memory) {
     set_union_inplace(shared_memory, additional_shared_memory);
+  }
 
   const size_t num_perms = factorial(n_func);
   int **itl = get_func_permutations(n_func);
@@ -70,6 +74,7 @@ void equiv_checker_run(
     shared_memory, valid_hashes
   );
 
+
   for(int i = 1; i <= ncs; i++) {
     printk("\nTrying %d context switches...\n", i);
     run_interleavings(
@@ -78,7 +83,8 @@ void equiv_checker_run(
       valid_hashes,
       init,
       i,
-      shared_memory
+      shared_memory,
+      tags
     );
   }
 

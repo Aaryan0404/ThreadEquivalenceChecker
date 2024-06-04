@@ -27,7 +27,7 @@ static schedule_t* schedule = NULL;
 
 static uint32_t init = 0;
 
-static int verbose_p = 1;
+static int verbose_p = 0;
 void equiv_verbose_on(void) {
     verbose_p = 1;
 }
@@ -116,7 +116,13 @@ void print_schedule(const char* msg, schedule_t* schedule) {
     for(int instr = 0; instr < schedule->instr_counts[ctx_switch]; instr++) {
       for(int f = 0; f < schedule->n_funcs; f++) {
         printk("\t");
-        if(schedule->tids[ctx_switch]-1 == f) printk("|");
+        if(schedule->tids[ctx_switch]-1 == f) {
+          if(schedule->report) {
+            printk("%x", schedule->report->pcs[ctx_switch][instr]);
+          } else {
+            printk("|");
+          }
+        }
         else printk(" ");
       }
       printk("\n");
@@ -151,6 +157,9 @@ void ctx_switch_handler(set_t *touched_memory, uint32_t pc) {
     if (!set_empty(intersection)) {
         if(cur_thread->verbose_p)
           trace("PC %x touched shared memory\n", pc);
+        if(schedule->report) {
+          schedule->report->pcs[ctx_switch_status.ctx_switch][ctx_switch_status.instr_count] = pc;
+        }
         ctx_switch_status.do_instr_count = 1;
     }
     set_free(intersection);
@@ -238,7 +247,7 @@ static int equiv_syscall_handler(regs_t *r) {
            // Finished early, disable traps
           } else {
             if(cur_thread->verbose_p)
-              trace("Finished early, running to completion\n");
+              trace("Thread %d finished early, running to completion\n", cur_thread->tid);
             schedule = NULL;
           }
         }
@@ -298,7 +307,7 @@ eq_th_t *equiv_fork(void (*fn)(void**), void **args, uint32_t expected_hash) {
     assert((uint32_t)th%8==0);
     th->tid = ntids++;
 
-    //th->verbose_p = 1;
+    th->verbose_p = verbose_p;
 
     th->fn = (uint32_t)fn;
     th->args = (uint32_t)args;

@@ -34,7 +34,8 @@ void run_interleavings(
   set_t *valid_hashes,
   init_memory_func init,
   int ncs,
-  set_t *shared_memory
+  set_t *shared_memory,
+  memory_tags_t* tags
 );
 
 // Old

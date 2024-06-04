@@ -36,14 +36,14 @@ uint32_t* global;
 
 EQUIV_USER
 void funcA(void** arg) {
-  //atomic_increment(global);
-  normal_increment(global);
+  atomic_increment(global);
+  //normal_increment(global);
 }
 
 EQUIV_USER
 void funcB(void** rag) {
-  //atomic_increment(global);
-  normal_increment(global);
+  atomic_increment(global);
+  //normal_increment(global);
 }
 
 void init_memory() {
@@ -62,5 +62,8 @@ void notmain() {
     executables[0].func_addr = (func_ptr)funcA;
     executables[1].func_addr = (func_ptr)funcB;
 
-    equiv_checker_run(executables, NUM_FUNCS, NUM_CTX, init_memory, NULL);
+    memory_tags_t t = mk_tags(1);
+    add_tag(&t, global, "global");
+
+    equiv_checker_run(executables, NUM_FUNCS, NUM_CTX, init_memory, NULL, &t);
 }

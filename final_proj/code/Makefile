@@ -12,6 +12,7 @@
 # PROGS += 9-stack.c
 # PROGS += 10-cq.c
 PROGS += 11-armatomic.c
+# PROGS += 12-quantum-leap-rb.c
 
 COMMON_SRC += interleaver.c
 COMMON_SRC += permutations.c

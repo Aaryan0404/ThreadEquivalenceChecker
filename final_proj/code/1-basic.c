@@ -37,7 +37,7 @@ void init_memory() {
 
 void notmain() {    
     equiv_checker_init();
-    set_verbosity(1);
+    set_verbosity(3);
 
     // number of interleaved context switches (remaining context switches will result in threads being run to completion)
     global_var = kmalloc(sizeof(int));
@@ -47,5 +47,8 @@ void notmain() {
     executables[0].func_addr = (func_ptr)funcMA;
     executables[1].func_addr = (func_ptr)funcMS;
 
-    equiv_checker_run(executables, NUM_FUNCS, NUM_CTX, init_memory, NULL);
+    memory_tags_t t = mk_tags(1);
+    add_tag(&t, global_var, "global");
+
+    equiv_checker_run(executables, NUM_FUNCS, NUM_CTX, init_memory, NULL, &t);
 }

@@ -1,6 +1,7 @@
 #include "memory.h"
 #define XXH_INLINE_ALL 1
 #include "xxhash.h"
+#include "equiv-malloc.h"
 
 // initialize ptr_og_list in memory state with a copy of the values in ptr_list
 void initialize_memory_state(memory_segments* memory_state) {
@@ -48,15 +49,49 @@ void print_memstate(memory_segments* memory_state){
     }
 }
 
+memory_tags_t mk_tags(size_t n_tags) {
+  memory_tags_t t = {
+    .n_tags = 0,
+    .tag_bases = equiv_malloc(n_tags * sizeof(uint32_t)),
+    .tags = equiv_malloc(n_tags * sizeof(char*))
+  };
+  return t;
+}
+
+void add_tag(memory_tags_t* tags, void* addr, char* tag) {
+  tags->tag_bases[tags->n_tags] = (uint32_t)addr;
+  tags->tags[tags->n_tags] = tag;
+  tags->n_tags++;
+}
+
+char* get_tag(memory_tags_t* tags, void* addr) {
+  for(size_t i = 0; i < tags->n_tags; i++)
+    if(tags->tag_bases[i] == (uint32_t)addr)
+      return tags->tags[i];
+
+  return NULL;
+}
 
 void print_mem_value(uint32_t v, void* arg) {
-  printk("\t%x : %x\n", v, *((volatile char*)v));
+  printk("\t%x : %x", v, *((volatile char*)v));
+  if(arg) {
+    char* tag = get_tag((memory_tags_t*)arg, (char*)v);
+    if(tag) {
+      printk("\t");
+      printk(tag);
+    }
+  }
+  printk("\n");
+}
+
+void print_mem_tags(const char* msg, set_t* mem, memory_tags_t* tags) {
+  if(msg) printk(msg);
+  set_foreach(mem, print_mem_value, tags);
+  printk("\tHash: %x\n", hash_mem(mem));
 }
 
 void print_mem(const char* msg, set_t* mem) {
-  if(msg) printk(msg);
-  set_foreach(mem, print_mem_value, NULL);
-  printk("\tHash: %x\n", hash_mem(mem));
+  print_mem_tags(msg, mem, NULL);
 }
 
 void hash_mem_value(uint32_t v, void* arg) {
@@ -69,4 +104,10 @@ uint32_t hash_mem(set_t* mem) {
   set_foreach(mem, hash_mem_value, state);
   XXH32_hash_t hash = XXH32_digest(state);
   return hash;
+}
+
+void add_mem(set_t* mem, void* base, size_t size) {
+  for(size_t i = 0; i < size; i++) {
+    set_insert(mem, (uint32_t)base + i);
+  }
 }

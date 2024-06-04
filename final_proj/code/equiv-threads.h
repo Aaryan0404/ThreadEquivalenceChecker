@@ -8,10 +8,17 @@
 #include "set.h"
 
 typedef struct {
+  uint32_t** pcs;
+} schedule_report_t;
+
+typedef struct {
   uint32_t* tids;
   uint32_t* instr_counts;
   uint32_t n_ctx_switches;
   uint32_t n_funcs;
+  // If this is not null, record the PCs of shared memory modifying
+  // instructions
+  schedule_report_t* report;
 } schedule_t;
 
 typedef struct eq_th {

@@ -53,7 +53,8 @@ void run_interleavings(
   set_t *valid_hashes,
   init_memory_func init,
   int ncs,
-  set_t *shared_memory
+  set_t *shared_memory,
+  memory_tags_t* tags
 ) {
     equiv_init();
 
@@ -81,9 +82,20 @@ void run_interleavings(
       .tids = tids,
       .instr_counts = instr_nums,
       .n_ctx_switches = ncs,
-      .n_funcs = num_funcs
+      .n_funcs = num_funcs,
     };
     while(!done) {
+      schedule_report_t* report = NULL;
+      if(verbose >= 3) {
+        // Setup of schedule report
+        report = equiv_malloc(sizeof(schedule_report_t*));
+        report->pcs = equiv_malloc(sizeof(uint32_t*) * schedule.n_ctx_switches);
+        for(int i = 0; i < schedule.n_ctx_switches; i++)
+          report->pcs[i] = equiv_malloc(sizeof(uint32_t) * schedule.instr_counts[i]);
+        
+      }
+      schedule.report = report;
+
       init();
       reset_threads(threads, num_funcs);
       set_memory_touch_handler(ctx_switch_handler);
@@ -103,15 +115,23 @@ void run_interleavings(
 
         if(!set_lookup(valid_hashes, hash)) {
           if(verbose >= 1) {
-            print_mem("\nInvalid memory state detected\n", shared_memory);
+            print_mem_tags("\nInvalid memory state detected\n", shared_memory, tags);
             print_schedule("With schedule \n", &schedule);
           }
         } else {
           if(verbose >= 3) {
-            print_mem("\nValid memory state detected\n", shared_memory);
+            print_mem_tags("\nValid memory state detected\n", shared_memory, tags);
             print_schedule("With schedule \n", &schedule);
           }
         }
+      }
+
+      if(verbose >= 3) {
+        // Free schedule report
+        for(int i = 0; i < schedule.n_ctx_switches; i++)
+          equiv_free(report->pcs[i]);
+        equiv_free(report->pcs);
+        equiv_free(report);
       }
 
       // Advance instruction numbers

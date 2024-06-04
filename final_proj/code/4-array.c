@@ -59,17 +59,18 @@ void notmain() {
     global_var = kmalloc(sizeof(int));
     global_var2 = kmalloc(sizeof(int));
     global_var3 = kmalloc(sizeof(int) * 3);
-
-    equiv_checker_init();
-
-    global_var = kmalloc(sizeof(int));
-    global_var2 = kmalloc(sizeof(int));
-    global_var3 = kmalloc(sizeof(int));
     
     function_exec *executables = kmalloc(NUM_FUNCS * sizeof(function_exec));
     executables[0].func_addr = (func_ptr)funcMA;
     executables[1].func_addr = (func_ptr)funcMS;
     executables[2].func_addr = (func_ptr)funcIndep;
 
-    equiv_checker_run(executables, NUM_FUNCS, NUM_CTX, init_memory, NULL);
+    memory_tags_t t = mk_tags(5);
+    add_tag(&t, global_var, "global 1");
+    add_tag(&t, global_var2, "global 2");
+    add_tag(&t, global_var3, "global 3 [0]");
+    add_tag(&t, global_var3 + 1, "global 3 [1]");
+    add_tag(&t, global_var3 + 2, "global 3 [2]");
+
+    equiv_checker_run(executables, NUM_FUNCS, NUM_CTX, init_memory, NULL, &t);
 }

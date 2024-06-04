@@ -12,6 +12,7 @@ void equiv_checker_run(
   uint32_t n_func,
   uint32_t ncs,
   init_memory_func init,
-  set_t* additional_shared_memory
+  set_t* additional_shared_memory,
+  memory_tags_t* tags
 );
 #endif

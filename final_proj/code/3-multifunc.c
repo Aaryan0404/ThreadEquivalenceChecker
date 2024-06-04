@@ -63,5 +63,10 @@ void notmain() {
     executables[1].func_addr = (func_ptr)funcMS;
     executables[2].func_addr = (func_ptr)funcIndep;
 
-    equiv_checker_run(executables, NUM_FUNCS, NUM_CTX, init_memory, NULL);
+    memory_tags_t t = mk_tags(3);
+    add_tag(&t, global_var, "global 1");
+    add_tag(&t, global_var2, "global 2");
+    add_tag(&t, global_var3, "global 3");
+
+    equiv_checker_run(executables, NUM_FUNCS, NUM_CTX, init_memory, NULL, &t);
 }

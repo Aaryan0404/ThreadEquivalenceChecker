@@ -1,0 +1,3 @@
+[submodule "final_proj/ck"]
+	path = final_proj/ck
+	url = https://github.com/concurrencykit/ck.git
