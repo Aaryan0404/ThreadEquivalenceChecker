@@ -13,8 +13,17 @@ static rw_tracker_t current_tracker;
 static void get_touched_bytes(uint32_t instruction, uint32_t addr, set_t* destination_set) {
   // TODO: Alignment?????
 
+  // A4-213 SWP
+  if(bits_get(instruction, 20, 27) == 0b00010000) {
+    for(int i = 0; i < 4; i++)
+      set_insert(destination_set, addr + i);
+  }
+  // A4-214 SWPB
+  else if(bits_get(instruction, 20, 27) == 0b00010100) {
+    set_insert(destination_set, addr);
+  }
   // A4-52 & A4-202 LDREX/STREXX
-  if(bits_get(instruction, 21, 27) == 0b0001100) {
+  else if(bits_get(instruction, 21, 27) == 0b0001100) {
     // Only words
     for(int i = 0; i < 4; i++)
       set_insert(destination_set, addr + i);
@@ -58,6 +67,7 @@ static void get_touched_bytes(uint32_t instruction, uint32_t addr, set_t* destin
         set_insert(destination_set, addr);
         break;
       default:
+        printk("%x accessed %x\n", instruction, addr);
         panic("Unexpected LSH combination\n");
     }
   }

@@ -44,12 +44,14 @@ typedef struct {
   uint32_t instr_count;
   // Set to true before R/W commits, read by prefetch abort for next instruction
   uint32_t do_instr_count;
+  uint32_t yielded;
 } ctx_switch_status_t;
 
 enum {
     EQUIV_EXIT = 0,
     EQUIV_PUTC = 1,
-    EQUIV_SWITCH = 2
+    EQUIV_SWITCH = 2,
+    EQUIV_YIELD = 3
 };
 
 typedef void (*equiv_fn_t)(void*);
@@ -91,6 +93,8 @@ void equiv_run(void);
 
 // called by client code.
 void sys_equiv_exit(uint32_t ret);
+
+void sys_equiv_yield();
 
 void equiv_refresh(eq_th_t *th);
 

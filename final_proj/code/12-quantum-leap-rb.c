@@ -206,7 +206,6 @@ void notmain() {
     add_mem(shared_mem_hint, &rb.tail, sizeof(rb.tail));
     //set_t* shared_mem_hint = NULL;
 
-
     memory_tags_t t = mk_tags(10);
     add_tag(&t, &rb.head, "rb.head");
     add_tag(&t, &rb.tail, "rb.tail");

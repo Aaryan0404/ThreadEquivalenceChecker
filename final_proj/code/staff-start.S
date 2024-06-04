@@ -119,6 +119,11 @@ MK_FN(sys_equiv_exit)
     swi 1
 
 EQUIV_USER_ASM
+MK_FN(sys_equiv_yield)
+    mov r0, #3
+    swi 1
+
+EQUIV_USER_ASM
 MK_FN(sys_equiv_putc)
     push {lr}
     mov r1, r0

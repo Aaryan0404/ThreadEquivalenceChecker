@@ -260,35 +260,35 @@ MK_FN(syscall_trampoline)
     pop {lr}
     bx lr
 
-EQUIV_USER_ASM
-
-.global vibe_check
-.global secure_vibes
-.global release_vibes
-
-vibe_check:
-    mrs     r3, cpsr
-    cpsid   i               @ Disable interrupts
-    mov     r1, #1
-    swp     r2, r1, [r0]    @ try acquiring the lock
-    mov     r0, r2          @ mov og value of lock into r0 (return value)
-    msr     cpsr_c, r3      @ restore og state of interrupt
-    bx      lr              
-
-secure_vibes:
-    mrs     r1, cpsr      @ save og cpsr state
-    cpsid   i             @ disable interrupts
-1:  ldr     r2, [r0]      @ load lock into r2
-    cmp     r2, #0        
-    bne     1b            
-    mov     r2, #1
-    swp     r2, r2, [r0]  @ attempt to get lock
-    cmp     r2, #0        
-    bne     1b            
-    msr     cpsr_c, r1    @ restore og cpsr
-    bx      lr            
-
-release_vibes:
-    mov     r1, #0
-    str     r1, [r0]     @ set lock to available
-    bx      lr      
+@ EQUIV_USER_ASM
+@ 
+@ .global vibe_check
+@ .global secure_vibes
+@ .global release_vibes
+@ 
+@ vibe_check:
+@     mrs     r3, cpsr
+@     cpsid   i               @ Disable interrupts
+@     mov     r1, #1
+@     swp     r2, r1, [r0]    @ try acquiring the lock
+@     mov     r0, r2          @ mov og value of lock into r0 (return value)
+@     msr     cpsr_c, r3      @ restore og state of interrupt
+@     bx      lr              
+@ 
+@ secure_vibes:
+@     mrs     r1, cpsr      @ save og cpsr state
+@     cpsid   i             @ disable interrupts
+@ 1:  ldr     r2, [r0]      @ load lock into r2
+@     cmp     r2, #0        
+@     bne     1b            
+@     mov     r2, #1
+@     swp     r2, r2, [r0]  @ attempt to get lock
+@     cmp     r2, #0        
+@     bne     1b            
+@     msr     cpsr_c, r1    @ restore og cpsr
+@     bx      lr            
+@ 
+@ release_vibes:
+@     mov     r1, #0
+@     str     r1, [r0]     @ set lock to available
+@     bx      lr      

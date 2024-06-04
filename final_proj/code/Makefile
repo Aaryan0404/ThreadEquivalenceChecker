@@ -7,11 +7,11 @@
 # PROGS += 4-array.c
 # PROGS += 5-multi-ctx-switch.c
 # PROGS += 6-ldstr-mode.c
-# PROGS += 7-vibes.c
+PROGS += 7-vibes.c
 # PROGS += 8-more_vibes.c
 # PROGS += 9-stack.c
 # PROGS += 10-cq.c
-PROGS += 11-armatomic.c
+# PROGS += 11-armatomic.c
 # PROGS += 12-quantum-leap-rb.c
 
 COMMON_SRC += interleaver.c

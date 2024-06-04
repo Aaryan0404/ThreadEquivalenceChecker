@@ -82,7 +82,7 @@ void run_interleavings(
       .tids = tids,
       .instr_counts = instr_nums,
       .n_ctx_switches = ncs,
-      .n_funcs = num_funcs,
+      .n_funcs = num_funcs
     };
     while(!done) {
       schedule_report_t* report = NULL;
@@ -108,8 +108,14 @@ void run_interleavings(
       
       rw_tracker_disable();
       disable_ctx_switch();
+
+      if(status.yielded) {
+        if(verbose >= 3) {
+          print_schedule("Schedule yielded \n", &schedule);
+        }
+      }
       
-      if(status.ctx_switch == ncs) {
+      if(!status.yielded && status.ctx_switch == ncs) {
         // Happy state, schedule was valid
         uint32_t hash = hash_mem(shared_memory);
 

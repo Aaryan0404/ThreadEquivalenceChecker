@@ -189,6 +189,7 @@ void reset_ctx_switch() {
   ctx_switch_status.instr_count = 0;
   ctx_switch_status.ctx_switch = 0;
   ctx_switch_status.do_instr_count = 0;
+  ctx_switch_status.yielded = 0;
 }
 
 void enable_ctx_switch(schedule_t* sched, set_t* shared_mem) {
@@ -236,6 +237,27 @@ static int equiv_syscall_handler(regs_t *r) {
     switch(sysno) {
     case EQUIV_PUTC: 
         uart_put8(r->regs[1]);
+        break;
+    case EQUIV_YIELD:
+        schedule = NULL;
+        ctx_switch_status.yielded = 1;
+        if(th->verbose_p)
+          trace("Thread %d yielded, running all to completion\n", th->tid);
+        
+        eq_append(&equiv_runq, cur_thread);
+        th = eq_pop(&equiv_runq);
+        
+        if(th->verbose_p)
+          trace("switching from tid=%d,pc=%x to tid=%d,pc=%x,sp=%x\n", 
+              cur_thread->tid, 
+              cur_thread->regs.regs[REGS_PC],
+              th->tid,
+              th->regs.regs[REGS_PC],
+              th->regs.regs[REGS_SP]);
+
+        cur_thread = th;
+        mismatch_run(&cur_thread->regs);
+        not_reached();
         break;
     case EQUIV_EXIT: 
         if(schedule) {
