@@ -1,1 +1,1 @@
-# ThreadEquivalenceChecker
+# AMIC
