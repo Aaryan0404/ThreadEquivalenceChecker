@@ -18,7 +18,6 @@
 @  add the rest.
 
 #include "rpi-asm.h"
-#include "equiv-checker-util.h"
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @  

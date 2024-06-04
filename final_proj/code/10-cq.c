@@ -4,9 +4,8 @@
 #include "equiv-checker.h"
 
 #define QUEUE_SIZE 100
-#define NUM_VARS 3
 #define NUM_FUNCS 4
-#define load_store_mode 1
+#define NUM_CTX 1
 
 /// GPT GENERATED circular queue
 
@@ -23,18 +22,6 @@
 // for the enqueue and dequeue operations.
 
 // RESPONSE: Below
-
-typedef int vibe_check_t;
-
-extern int vibe_check(vibe_check_t *cur_vibes);
-extern void secure_vibes(vibe_check_t *cur_vibes);
-extern void release_vibes(vibe_check_t *cur_vibes);
-
-vibe_check_t cur_vibes;
-
-void vibe_init(vibe_check_t *cur_vibes) {
-    *cur_vibes = 0;
-}
 
 typedef struct {
     int data[QUEUE_SIZE];
@@ -101,19 +88,18 @@ void consumerB(void **arg) {
     queue_dequeue(&queue, global_value);
 }
 
+void init_memory() {
+  queue_init(&queue);
+
+  *global_value = 0;
+  *global_value2 = 0;
+}
+
 void notmain() {
     equiv_checker_init();
     
-    queue_init(&queue);
-    vibe_init(&cur_vibes);
-    
-    global_value = kmalloc(sizeof(int));
-    *global_value = 0;
-
     global_value2 = kmalloc(sizeof(int));
-    *global_value2 = 0;
-
-    int interleaved_ncs = 1;
+    global_value = kmalloc(sizeof(int));
 
     function_exec executables[NUM_FUNCS];
     executables[0].func_addr = (func_ptr)producerA;
@@ -121,16 +107,14 @@ void notmain() {
     executables[2].func_addr = (func_ptr)consumerA;
     executables[3].func_addr = (func_ptr)consumerB;
 
-    int **itl = get_func_permutations(NUM_FUNCS);
-    const size_t num_perms = factorial(NUM_FUNCS);
-    uint64_t valid_hashes[num_perms];
+    set_t* shared_mem_hint = NULL;
 
-    void *global_vars[NUM_VARS] = {(void *)global_value, (void *)global_value2, (void *)&queue};
-    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int), sizeof(int) * (QUEUE_SIZE + 4)}; 
-    
-    memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes};
-    initialize_memory_state(&initial_mem_state);
+    memory_tags_t t = mk_tags(5);
+    add_tag(&t, global_value, "global 1");
+    add_tag(&t, global_value2, "global 2");
+    add_tag(&t, &queue.front, "queue front");
+    add_tag(&t, &queue.rear, "queue rear");
+    add_tag(&t, &queue.data, "queue data");
 
-    find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-    run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    equiv_checker_run(executables, NUM_FUNCS, NUM_CTX, init_memory, shared_mem_hint, &t);
 }

@@ -4,22 +4,8 @@
 #include "equiv-checker.h"
 
 #define MAX_STACK_SIZE 100
-#define NUM_VARS 2
 #define NUM_FUNCS 2
-#define load_store_mode 1
-
-typedef int vibe_check_t;
-
-// Assembly function to try acquiring the lock
-extern int vibe_check(vibe_check_t *cur_vibes);
-extern void secure_vibes(vibe_check_t *cur_vibes);
-extern void release_vibes(vibe_check_t *cur_vibes);
-
-vibe_check_t cur_vibes;
-
-void vibe_init(vibe_check_t *cur_vibes) {
-    *cur_vibes = 0; // 0 indicates that the lock is available
-}
+#define NUM_CTX 2
 
 typedef struct {
     int data[MAX_STACK_SIZE];
@@ -82,36 +68,33 @@ void funcB_bad(void **arg) {
     stack.top -= 1;
 }
 
+void init_memory() {
+  stack_init(&stack);
+  vibe_init(&stack.lock);
+  *global_value = 0;
+}
+
 void notmain() {
     equiv_checker_init();
-    
-    stack_init(&stack);
-    vibe_init(&cur_vibes);
-    
+    set_verbosity(1);
+
     global_value = kmalloc(sizeof(int));
-    *global_value = 0;
 
-    int interleaved_ncs = 2;
+    function_exec *executables = kmalloc(NUM_FUNCS * sizeof(function_exec));
+    /*executables[0].func_addr = (func_ptr)funcA;
+    executables[1].func_addr = (func_ptr)funcB;*/
+    /*executables[0].func_addr = (func_ptr)funcA_bad;
+    executables[1].func_addr = (func_ptr)funcB_bad;*/
 
-    function_exec executables[NUM_FUNCS];
-    executables[0].func_addr = (func_ptr)funcA;
-    executables[1].func_addr = (func_ptr)funcB;
-    // executables[0].func_addr = (func_ptr)funcA_bad;
-    // executables[1].func_addr = (func_ptr)funcB_bad;
+    /*set_t* shared_mem_hint = set_alloc();
+    add_mem(shared_mem_hint, global_var2, sizeof(int));*/
+    set_t* shared_mem_hint = NULL;
 
-    const size_t num_perms = factorial(NUM_FUNCS);
-    int **itl = get_func_permutations(NUM_FUNCS);
-    uint64_t valid_hashes[num_perms];
+    memory_tags_t t = mk_tags(4);
+    add_tag(&t, global_value, "global 1");
+    add_tag(&t, &stack.lock, "stack lock");
+    add_tag(&t, &stack.top, "stack top");
+    add_tag(&t, &stack.data, "stack data");
 
-    // Initialize memory state
-    void *global_vars[NUM_VARS] = {(void *)global_value, (void *)&stack};
-    size_t sizes[NUM_VARS] = {sizeof(int), sizeof(int) * (MAX_STACK_SIZE + 1)}; 
-    
-    memory_segments initial_mem_state = {NUM_VARS, (void **)global_vars, NULL, sizes};
-    initialize_memory_state(&initial_mem_state);
-
-    find_good_hashes(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes);
-
-    // run_interleavings(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
-    run_interleavings_as_generated(executables, NUM_FUNCS, itl, num_perms, &initial_mem_state, valid_hashes, interleaved_ncs, load_store_mode);
+    equiv_checker_run(executables, NUM_FUNCS, NUM_CTX, init_memory, shared_mem_hint, &t);
 }

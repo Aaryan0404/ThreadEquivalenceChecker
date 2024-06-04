@@ -5,24 +5,6 @@
 #define NUM_CTX 1
 
 EQUIV_USER
-static inline uint32_t atomic_increment(uint32_t* x) {
-  // ChatGPT 4o wrote this
-  uint32_t result;
-  uint32_t tmp;
-  asm volatile (
-   "1: ldrex %0, [%2]\n"     // Load the value from ptr into result
-   "   add %0, %0, #1\n"     // Increment the value in result
-   "   strex %1, %0, [%2]\n" // Attempt to store the incremented value back to ptr
-   "   teq %1, #0\n"         // Check if the store was successful
-   "   bne 1b\n"             // If not, retry (branch to label 1)
-   : "=&r" (result), "=&r" (tmp)
-   : "r" (x)
-   : "memory", "cc"
-  );
-  return result;
-}
-
-EQUIV_USER
 static inline uint32_t normal_increment(uint32_t* x) {
   uint32_t t = *x;
   gcc_mb();

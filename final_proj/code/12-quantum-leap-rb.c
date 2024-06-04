@@ -187,7 +187,7 @@ void init_memory() {
 
 void notmain() {    
     equiv_checker_init();
-    set_verbosity(3);
+    set_verbosity(1);
 
     init_memory();
 
